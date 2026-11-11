@@ -854,7 +854,10 @@ function screenHome(view) {
 
   view.append(h('div', {class: 'tiles'},
     tile("Today's sales", rs(d.sales), h('span', {}, 'vs yesterday ', change(d.sales, y.sales) || '–', ' · last ' + DOW[parseD(t).getDay()] + ' ', change(d.sales, w.sales) || '–'), 'tile--wide tile--hero'),
-    showMoney ? tile("Today's profit", rs(d.profit), `after ${rs(d.spend + d.wages + d.fixed)} costs`) : null,
+    // Profit only means something once sales are in; until then show what the day must cover.
+    showMoney ? (d.sales
+      ? tile("Today's profit", rs(d.profit), `after rent & bills ${rs(d.fixed)}` + (d.spend + d.wages ? `, spending & wages ${rs(d.spend + d.wages)}` : ''))
+      : tile("Today's profit", '—', `Enter sales first. Rent & bills to cover today: ${rs(d.fixed)}`)) : null,
     tile('Cash received', rs(d.cash), d.entered ? 'from sales entry' : 'not entered yet'),
     tile('UPI received', rs(d.upi), d.cash + d.upi ? Math.round(d.upi / (d.cash + d.upi) * 100) + '% of money in' : ''),
     showMoney ? null : tile('Items sold', String(d.units))));
