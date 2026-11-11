@@ -1,0 +1,1626 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#101412">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Shop Manager">
+<title>Shop Manager</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700&family=Mukta:wght@400;600&display=swap">
+<style>
+:root{
+  /* Layout: phone-first app shell. Top bar, one scrolling screen, bottom tab bar. Dark by default. */
+  --bg:#101412; --surface:#191E1B; --surface-2:#232A25; --surface-3:#2E3630;
+  --ink:#ECEFEA; --muted:#A3ADA6; --line:#343C36;
+  --accent:#F4BE2E; --accent-ink:#221900; --accent-soft:#3A300F;
+  --chaat:#F08A70; --chaat-soft:#3A221B; --tea:#6CC6B2; --tea-soft:#16302A;
+  --good:#6BCB8F; --good-soft:#163222; --bad:#FF8A7A; --bad-soft:#3D1D19; --warn:#F2A64A; --warn-soft:#38270F;
+  --focus:#8FB0FF;
+  --display:"Baloo 2","Trebuchet MS",system-ui,sans-serif;
+  --body:"Mukta","Segoe UI",Roboto,system-ui,-apple-system,sans-serif;
+  color-scheme:dark;
+}
+:root[data-theme="light"]{
+  --bg:#F2F4EF; --surface:#FFFFFF; --surface-2:#E8ECE5; --surface-3:#DCE2D8;
+  --ink:#18201B; --muted:#56615A; --line:#D2D9CE;
+  --accent:#F2B417; --accent-ink:#2A1E00; --accent-soft:#FDF0C8;
+  --chaat:#A93B25; --chaat-soft:#F8E6E0; --tea:#1F6658; --tea-soft:#DFF0EA;
+  --good:#24774A; --good-soft:#DDF1E4; --bad:#B3321F; --bad-soft:#FBE2DD; --warn:#995600; --warn-soft:#FCEBD2;
+  --focus:#2356C4;
+  color-scheme:light;
+}
+*,*::before,*::after{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:400 17px/1.45 var(--body);-webkit-tap-highlight-color:transparent;overscroll-behavior-y:none}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+[hidden]{display:none!important}
+:focus-visible{outline:3px solid var(--focus);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+
+/* shell */
+.top{position:sticky;top:0;z-index:20;background:var(--bg);padding:env(safe-area-inset-top,0px) max(16px,env(safe-area-inset-right,0px)) 0 max(16px,env(safe-area-inset-left,0px))}
+.top__in{display:flex;align-items:center;gap:10px;min-height:56px;max-width:720px;margin:0 auto}
+.top h1{font:700 22px/1.1 var(--display);margin:0;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sync{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);background:none;border:0;padding:6px 0;min-height:40px}
+.sync i{width:9px;height:9px;border-radius:50%;background:var(--muted)}
+.sync[data-s="ok"] i{background:var(--good)}
+.sync[data-s="busy"] i{background:var(--accent)}
+.sync[data-s="off"] i{background:var(--warn)}
+.view{max-width:720px;margin:0 auto;padding:8px max(16px,env(safe-area-inset-right,0px)) calc(110px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);padding:0 max(4px,env(safe-area-inset-right,0px)) env(safe-area-inset-bottom,0px) max(4px,env(safe-area-inset-left,0px))}
+.tabs__in{display:grid;grid-template-columns:repeat(5,1fr);max-width:720px;margin:0 auto}
+.tab{display:grid;justify-items:center;gap:2px;padding:8px 2px 10px;background:none;border:0;color:var(--muted);font-size:12.5px;font-weight:600;min-height:62px}
+.tab svg{width:26px;height:26px}
+.tab[aria-current="page"]{color:var(--accent)}
+
+/* type */
+.h2{font:700 24px/1.15 var(--display);margin:14px 0 6px}
+.h3{font:700 18px/1.2 var(--display);margin:18px 0 8px}
+.muted{color:var(--muted)}
+.small{font-size:14px}
+.eyebrow{font-size:12.5px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);margin:0}
+p{margin:0 0 8px}
+
+/* building blocks */
+.card{background:var(--surface);border-radius:16px;padding:14px 16px;margin:10px 0}
+.card--tap{display:block;width:100%;text-align:left;border:0}
+.row{display:flex;align-items:center;gap:10px}
+.row--between{justify-content:space-between}
+.wrap{flex-wrap:wrap}
+.grow{flex:1;min-width:0}
+.stack{display:grid;gap:10px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.list{display:grid;gap:8px}
+.divider{height:1px;background:var(--line);margin:10px 0}
+.pill{display:inline-flex;align-items:center;gap:6px;padding:3px 10px;border-radius:99px;font-size:13px;font-weight:600;background:var(--surface-2);color:var(--muted)}
+.pill--good{background:var(--good-soft);color:var(--good)}
+.pill--bad{background:var(--bad-soft);color:var(--bad)}
+.pill--warn{background:var(--warn-soft);color:var(--warn)}
+.pill--chaat{background:var(--chaat-soft);color:var(--chaat)}
+.pill--tea{background:var(--tea-soft);color:var(--tea)}
+.up{color:var(--good)} .down{color:var(--bad)}
+
+/* stat tiles */
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:10px 0}
+.tile{background:var(--surface);border-radius:16px;padding:12px 14px;min-width:0}
+.tile__l{font-size:13px;color:var(--muted);font-weight:600}
+.tile__v{font:700 26px/1.15 var(--display);font-variant-numeric:tabular-nums;margin-top:2px;overflow-wrap:anywhere}
+.tile__s{font-size:13px;color:var(--muted);margin-top:2px}
+.tile--wide{grid-column:1/-1}
+.tile--hero .tile__v{font-size:34px}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:50px;padding:10px 18px;border-radius:14px;border:1.5px solid transparent;font-weight:600;line-height:1.2;text-decoration:none}
+.btn--primary{background:var(--accent);color:var(--accent-ink)}
+.btn--ghost{background:transparent;border-color:var(--line)}
+.btn--soft{background:var(--surface-2)}
+.btn--danger{background:var(--bad-soft);color:var(--bad)}
+.btn--block{width:100%}
+.btn--big{min-height:58px;font-size:19px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.link{background:none;border:0;padding:6px 0;color:var(--accent);font-weight:600;min-height:40px}
+.iconbtn{width:46px;height:46px;flex:none;display:grid;place-items:center;border-radius:12px;border:1.5px solid var(--line);background:var(--surface);font-size:22px;line-height:1}
+
+/* shop switch */
+.shops{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;background:var(--surface);padding:5px;border-radius:14px;margin:6px 0 10px}
+.shops button{min-height:44px;border:0;border-radius:10px;background:none;font-weight:600;color:var(--muted)}
+.shops button[aria-pressed="true"]{background:var(--surface-3);color:var(--ink)}
+.shops button[data-shop="chaat"][aria-pressed="true"]{background:var(--chaat-soft);color:var(--chaat)}
+.shops button[data-shop="tea"][aria-pressed="true"]{background:var(--tea-soft);color:var(--tea)}
+
+/* date bar */
+.datebar{display:flex;align-items:center;gap:8px;margin:4px 0 8px}
+.datebar .date{flex:1;text-align:center;font-weight:600;min-height:46px;display:grid;place-items:center;background:var(--surface);border-radius:12px;position:relative}
+.datebar input[type=date]{position:absolute;inset:0;opacity:0;width:100%;height:100%}
+
+/* forms */
+.field{display:grid;gap:6px;margin:10px 0}
+.field > span{font-size:14px;color:var(--muted);font-weight:600}
+.in{width:100%;min-height:50px;padding:10px 12px;border-radius:12px;border:1.5px solid var(--line);background:var(--surface);color:var(--ink)}
+.in:focus{outline:none;border-color:var(--focus)}
+textarea.in{min-height:80px;resize:vertical}
+.money{display:flex;align-items:stretch;border:1.5px solid var(--line);border-radius:12px;background:var(--surface);overflow:hidden}
+.money:focus-within{border-color:var(--focus)}
+.money b{display:grid;place-items:center;padding:0 14px;background:var(--surface-2);color:var(--muted)}
+.money .in{border:0;border-radius:0;font:700 22px/1 var(--display);font-variant-numeric:tabular-nums}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{min-height:46px;padding:8px 14px;border-radius:12px;border:1.5px solid var(--line);background:var(--surface);font-weight:600;display:inline-flex;align-items:center;gap:6px}
+.chip[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+.seg{display:flex;gap:6px}
+.seg button{flex:1;min-height:48px;border-radius:12px;border:1.5px solid var(--line);background:var(--surface);font-weight:600}
+.seg button[aria-pressed="true"]{border-color:var(--accent);background:var(--accent-soft)}
+
+/* sales counters */
+.items{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.item{background:var(--surface);border-radius:16px;padding:10px;display:grid;gap:8px;border:1.5px solid transparent}
+.item--on{border-color:var(--accent)}
+.item__top{display:flex;align-items:center;gap:8px;min-width:0}
+.item__ico{font-size:28px;line-height:1;flex:none}
+.item__name{font-weight:600;line-height:1.2;min-width:0;overflow-wrap:anywhere}
+.item__price{font-size:13px;color:var(--muted)}
+.ctr{display:grid;grid-template-columns:48px 1fr 48px;align-items:center;gap:4px}
+.ctr button{height:48px;border-radius:12px;border:0;background:var(--surface-2);font:700 24px/1 var(--body)}
+.ctr button.plus{background:var(--accent);color:var(--accent-ink)}
+.ctr input{width:100%;min-width:0;height:48px;text-align:center;border:0;background:none;font:700 24px/1 var(--display);font-variant-numeric:tabular-nums}
+.sumbar{position:fixed;left:0;right:0;bottom:calc(62px + env(safe-area-inset-bottom,0px));z-index:15;background:var(--surface-3);padding:10px max(16px,env(safe-area-inset-right,0px)) 10px max(16px,env(safe-area-inset-left,0px))}
+.sumbar__in{max-width:720px;margin:0 auto;display:flex;align-items:center;gap:12px}
+.sumbar b{font:700 24px/1 var(--display);font-variant-numeric:tabular-nums}
+.view--sum{padding-bottom:calc(180px + env(safe-area-inset-bottom,0px))}
+
+/* list rows */
+.li{display:flex;align-items:center;gap:12px;background:var(--surface);border-radius:14px;padding:12px 14px;width:100%;border:0;text-align:left}
+.li__ico{width:42px;height:42px;flex:none;border-radius:12px;display:grid;place-items:center;background:var(--surface-2);font-size:22px}
+.li__main{flex:1;min-width:0}
+.li__t{font-weight:600;overflow-wrap:anywhere}
+.li__s{font-size:13.5px;color:var(--muted)}
+.li__v{font:700 18px/1.2 var(--display);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+
+/* bars chart */
+.bars{display:grid;gap:8px}
+.bar{display:grid;grid-template-columns:minmax(80px,38%) 1fr auto;align-items:center;gap:8px;font-size:14px}
+.bar__l{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar__t{height:14px;border-radius:7px;background:var(--surface-2);overflow:hidden}
+.bar__f{height:100%;border-radius:7px;background:var(--accent)}
+.bar__f--chaat{background:var(--chaat)} .bar__f--tea{background:var(--tea)}
+.bar__v{font-variant-numeric:tabular-nums;font-weight:600}
+.cols{display:flex;align-items:flex-end;gap:4px;height:140px;padding-top:8px}
+.col{flex:1;display:grid;align-content:end;justify-items:center;gap:4px;min-width:0;height:100%}
+.col__f{width:100%;max-width:26px;border-radius:6px 6px 2px 2px;background:var(--accent);min-height:2px}
+.col__f--now{background:var(--good)}
+.col__l{font-size:11px;color:var(--muted)}
+
+/* table */
+.tablewrap{overflow-x:auto;margin:8px 0}
+table.t{border-collapse:collapse;width:100%;font-size:14.5px}
+.t th,.t td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+.t td.r,.t th.r{text-align:right;font-variant-numeric:tabular-nums}
+
+/* sheet (modal) */
+.sheet{position:fixed;inset:0;z-index:50;display:flex;align-items:flex-end;justify-content:center}
+.sheet__bg{position:absolute;inset:0;background:rgba(0,0,0,.55)}
+.sheet__p{position:relative;width:min(720px,100%);max-height:92%;overflow:auto;background:var(--bg);border-radius:20px 20px 0 0;padding:16px max(16px,env(safe-area-inset-right,0px)) calc(20px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.sheet__h{display:flex;align-items:center;gap:10px;margin-bottom:6px}
+.sheet__h h2{font:700 22px/1.2 var(--display);margin:0;flex:1}
+
+/* PIN pad */
+.pin{max-width:360px;margin:0 auto;padding-top:20px;text-align:center}
+.dots{display:flex;justify-content:center;gap:14px;margin:18px 0}
+.dots i{width:16px;height:16px;border-radius:50%;border:2px solid var(--muted)}
+.dots i.on{background:var(--accent);border-color:var(--accent)}
+.pad{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.pad button{height:68px;border-radius:18px;border:0;background:var(--surface);font:700 28px/1 var(--display)}
+.brand{font:700 34px/1.05 var(--display);margin:6px 0}
+
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));z-index:60;display:flex;align-items:center;gap:14px;max-width:calc(100% - 32px);padding:12px 16px;border-radius:14px;background:var(--ink);color:var(--bg);font-size:15px;box-shadow:0 8px 28px rgba(0,0,0,.35)}
+.toast button{background:none;border:0;color:var(--accent);font-weight:700;min-height:36px;padding:0}
+.empty{padding:22px 16px;text-align:center;color:var(--muted);background:var(--surface);border-radius:16px}
+.alert{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:14px;background:var(--warn-soft);color:var(--ink);margin:8px 0}
+.alert--bad{background:var(--bad-soft)}
+.alert--good{background:var(--good-soft)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div class="sheet" id="sheet" hidden></div>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+<noscript>Shop Manager needs JavaScript. Open it in Chrome or Safari.</noscript>
+<script>
+(function () {
+'use strict';
+/* Starting data from Prashanth's questionnaire (code MMVQ-WG4A + follow-ups, Nov 2026).
+   Everything here can be changed in Settings; prices left as 0 still need setting. */
+const SEED = {
+  settings() {
+    return {
+      id: 'settings', kind: 'settings',
+      shops: {
+        chaat: {name: 'Chaat', open: '14:00', close: '22:00', rent: 40000, deposit: 100000, investment: 150000},
+        tea: {name: 'Tea', open: '04:00', close: '23:30', rent: 48000, deposit: 100000, investment: 200000}
+      },
+      // Monthly running costs other than rent, spread across each day (shared = split 50/50).
+      fixed: [
+        {name: 'Electricity (BESCOM)', amount: 3000, shop: 'shared'},
+        {name: 'Water tanker / bill', amount: 6000, shop: 'shared'},
+        {name: 'Drinking water cans', amount: 4200, shop: 'shared'}
+      ],
+      overtimeRate: 50,
+      floatChaat: 0, floatTea: 0,
+      // Estimates for prep and shopping predictions. Change them as you learn.
+      milkMlPerCup: 54,        // 38 L for about 700 cups a day
+      teaGPerCup: 2.4,         // about 12 kg a week for about 700 cups a day
+      purisPerPlate: 6,
+      purisPerPacket: 100,
+      summaryTime: '23:30', reminderTime: '23:00'
+    };
+  },
+  items() {
+    const C = (name, price, icon, extra) => Object.assign({kind: 'item', shop: 'chaat', name, price, icon, cost: 0, active: true}, extra || {});
+    const T = (name, price, icon, extra) => Object.assign({kind: 'item', shop: 'tea', name, price, icon, cost: 0, active: true}, extra || {});
+    return [
+      C('Pani puri', 40, '🥣'), C('Masala puri', 50, '🍛'), C('Sev puri', 50, '🍘'), C('Dahi puri', 50, '🥛'),
+      C('Bhel puri', 50, '🥗'), C('Nippattu masala', 50, '🍪'), C('Samosa chaat', 50, '🥟'), C('Kachori chaat', 50, '🧆'),
+      C('Churumuri', 50, '🌶️'), C('Papdi chaat', 50, '🫓'), C('Bajji (4 pcs)', 40, '🍤'),
+      C('Vada pav', 0, '🍔'), C('Plain samosa/kachori', 0, '🥟'),
+      C('Water bottle / cool drink', 10, '💧', {resale: true}), C('Parcel charge', 5, '🛍️', {parcel: true}),
+      T('Regular tea', 15, '🍵'), T('Ginger tea', 20, '🫚'), T('Lemon tea', 20, '🍋'), T('Black tea', 12, '🫖'),
+      T('Instant coffee', 18, '☕'), T('Black coffee', 12, '☕'), T('Boost/Horlicks', 20, '🥤'), T('Hot milk', 20, '🥛'),
+      T('Tea/coffee parcel', 30, '🛍️', {parcel: true}),
+      T('Loose biscuit', 3, '🍪', {resale: true}), T('Rusk', 5, '🍞', {resale: true}), T('Cake slice', 5, '🍰', {resale: true}),
+      T('Biscuit packet', 0, '🍪', {resale: true}), T('Bun', 0, '🥯', {resale: true}),
+      T('Cigarettes', 20, '🚬', {resale: true}), T('Water bottle', 10, '💧', {resale: true}), T('Cool drink', 15, '🥤', {resale: true})
+    ].map((r, i) => Object.assign(r, {id: 'item:' + r.shop + ':' + i, order: i}));
+  },
+  stock() {
+    const s = (name, unit, shop, low, cost) => ({kind: 'stock', name, unit, shop, low, cost, active: true});
+    return [
+      s('Milk', 'L', 'tea', 10, 80), s('Tea powder', 'kg', 'tea', 2, 320), s('Coffee powder', 'kg', 'tea', 0.3, 1000),
+      s('Sugar', 'kg', 'both', 5, 0), s('Cigarettes', 'pcs', 'tea', 100, 0), s('Oil', 'L', 'chaat', 4, 0),
+      s('Pani puri puris', 'packet', 'chaat', 2, 210), s('Gas cylinders (full)', 'pcs', 'both', 1, 2780),
+      s('Water bottles', 'pcs', 'both', 12, 0), s('Cool drinks', 'pcs', 'both', 12, 0), s('Paper plates', 'pcs', 'chaat', 50, 0)
+    ].map((r, i) => Object.assign(r, {id: 'stock:' + i, order: i}));
+  },
+  records() { return [this.settings()].concat(this.items(), this.stock()); }
+};
+
+// Expense categories. fixed = already counted in daily running costs; owner = money taken out, not a cost.
+const CATS = [
+  {k: 'Milk', i: '🥛'}, {k: 'Vegetables', i: '🥕'}, {k: 'Groceries', i: '🧂'}, {k: 'Puris & snacks', i: '🍘'},
+  {k: 'Gas', i: '🔥', gas: true}, {k: 'Cigarettes & resale', i: '🚬'}, {k: 'Disposables', i: '🍽️'},
+  {k: 'Staff food', i: '🍲'}, {k: 'Transport', i: '🛵'}, {k: 'Repairs', i: '🔧'}, {k: 'Cleaning', i: '🧽'},
+  {k: 'Glasses', i: '🥃'}, {k: 'Rent', i: '🏠', fixed: true}, {k: 'Electricity', i: '💡', fixed: true},
+  {k: 'Water', i: '🚰', fixed: true}, {k: 'Owner withdrawal', i: '👛', owner: true}, {k: 'Other', i: '📦'}
+];
+const catOf = k => CATS.find(c => c.k === k) || CATS[CATS.length - 1];
+const DAY_TAGS = ['Rain', 'Holiday', 'Festival', 'Closed early', 'Worker absent', 'Power cut', 'Closed'];
+
+/* Local-first data store with background sync, sign-in and the app lock PIN. */
+const API_DEFAULT = "https://script.google.com/macros/s/AKfycbzpJiNyq39qk3vu2HFQmAOlewRaiCvlFdiZkyo7sgqEvLXhoWvibcEK_wDbmy1hPeFd/exec";
+const LS = {
+  get(k, d) { try { const v = localStorage.getItem('sm.' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem('sm.' + k, JSON.stringify(v)); } catch (e) { /* storage full or blocked */ } }
+};
+
+// ---------- persistence (IndexedDB, with localStorage fallback) ----------
+const DB = {
+  idb: null,
+  async open() {
+    if (!window.indexedDB) return;
+    this.idb = await new Promise(res => {
+      try {
+        const r = indexedDB.open('shop-manager', 1);
+        r.onupgradeneeded = () => r.result.createObjectStore('rec', {keyPath: 'id'});
+        r.onsuccess = () => res(r.result);
+        r.onerror = () => res(null);
+      } catch (e) { res(null); }
+    });
+  },
+  async all() {
+    if (!this.idb) return LS.get('records', []);
+    return new Promise(res => {
+      const q = this.idb.transaction('rec').objectStore('rec').getAll();
+      q.onsuccess = () => res(q.result || []);
+      q.onerror = () => res([]);
+    });
+  },
+  async putMany(list) {
+    if (!list.length) return;
+    if (!this.idb) { LS.set('records', Array.from(S.recs.values())); return; }
+    await new Promise(res => {
+      const tx = this.idb.transaction('rec', 'readwrite');
+      const os = tx.objectStore('rec');
+      list.forEach(r => os.put(r));
+      tx.oncomplete = res; tx.onerror = res; tx.onabort = res;
+    });
+  },
+  async clear() {
+    LS.set('records', []);
+    if (this.idb) await new Promise(res => { const tx = this.idb.transaction('rec', 'readwrite'); tx.objectStore('rec').clear(); tx.oncomplete = res; tx.onerror = res; });
+  }
+};
+
+// ---------- in-memory state ----------
+const S = {
+  recs: new Map(),
+  session: LS.get('session', null),   // {token, user:{username,name,role}}
+  api: LS.get('api', '') || API_DEFAULT,
+  seq: LS.get('seq', 0),
+  lastSync: LS.get('lastSync', 0),
+  syncing: false,
+  online: navigator.onLine !== false,
+  listeners: new Set()
+};
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+const notify = () => S.listeners.forEach(fn => { try { fn(); } catch (e) { console.error(e); } });
+
+function all(kind, includeDeleted) {
+  const out = [];
+  S.recs.forEach(r => { if (r.kind === kind && (includeDeleted || !r.deleted)) out.push(r); });
+  return out;
+}
+function get(id) { const r = S.recs.get(id); return r && !r.deleted ? r : null; }
+function settings() { return get('settings') || SEED.settings(); }
+
+/** Save one record (creates or updates). Returns the stored record. */
+function save(rec) {
+  const r = Object.assign({}, rec);
+  if (!r.id) r.id = r.kind + ':' + uid();
+  r.updatedAt = Date.now();
+  r.by = S.session ? S.session.user.username : '';
+  r._dirty = 1;
+  S.recs.set(r.id, r);
+  DB.putMany([r]);
+  notify();
+  queueSync(1500);
+  return r;
+}
+function remove(id) {
+  const r = S.recs.get(id);
+  if (!r) return;
+  save(Object.assign({}, r, {deleted: 1}));
+}
+
+// ---------- server ----------
+async function api(op, body) {
+  if (!S.api || S.api.indexOf('http') !== 0) throw new Error('The server link is not set. Add it in Settings.');
+  const res = await fetch(S.api, {method: 'POST', body: JSON.stringify(Object.assign({op, token: S.session && S.session.token}, body || {})), redirect: 'follow'});
+  const text = await res.text();
+  let d;
+  try { d = JSON.parse(text); } catch (e) { throw new Error('The server did not answer properly. Check the server link and that it allows "Anyone".'); }
+  if (!d.ok) {
+    if (d.auth) { S.session = null; LS.set('session', null); notify(); }
+    throw new Error(d.error || 'Server error');
+  }
+  return d;
+}
+
+let syncT = null;
+function queueSync(ms) { clearTimeout(syncT); syncT = setTimeout(() => sync().catch(() => {}), ms); }
+async function sync() {
+  clearTimeout(syncT);
+  if (!S.session || S.syncing) return;
+  S.syncing = true; notify();
+  const dirty = [];
+  S.recs.forEach(r => { if (r._dirty) dirty.push(r); });
+  const sent = dirty.map(r => { const c = Object.assign({}, r); delete c._dirty; delete c.seq; return c; });
+  try {
+    const d = await api('sync', {since: S.seq, changes: sent});
+    const keep = [];
+    dirty.forEach(r => { const now = S.recs.get(r.id); if (now && now.updatedAt === r.updatedAt) { delete now._dirty; keep.push(now); } });
+    d.changes.forEach(c => {
+      const mine = S.recs.get(c.id);
+      if (mine && mine._dirty && mine.updatedAt > c.updatedAt) return;
+      S.recs.set(c.id, c); keep.push(c);
+    });
+    await DB.putMany(keep);
+    S.seq = d.seq; LS.set('seq', d.seq);
+    S.lastSync = Date.now(); LS.set('lastSync', S.lastSync);
+    if (d.user) { S.session.user = d.user; LS.set('session', S.session); }
+    S.online = true;
+  } catch (e) {
+    S.online = navigator.onLine !== false && !/fetch|network|Failed/i.test(String(e.message));
+    queueSync(30000);
+    throw e;
+  } finally {
+    S.syncing = false; notify();
+  }
+}
+function pendingCount() { let n = 0; S.recs.forEach(r => { if (r._dirty) n++; }); return n; }
+
+async function signIn(username, pin) {
+  const d = await api('login', {username, pin});
+  await startSession(d, pin);
+}
+async function createOwner(setupCode, name, username, pin) {
+  const d = await api('setupOwner', {setupCode, name, username, pin});
+  await startSession(d, pin, true);
+}
+async function startSession(d, pin, seed) {
+  const prev = LS.get('lastUser', '');
+  if (prev && prev !== d.user.username) { S.recs.clear(); await DB.clear(); S.seq = 0; LS.set('seq', 0); }
+  S.session = {token: d.token, user: d.user};
+  LS.set('session', S.session);
+  LS.set('lastUser', d.user.username);
+  LS.set('pinHash', await pinHash(pin, d.user.username));
+  unlock();
+  if (seed) SEED.records().forEach(r => { if (!S.recs.get(r.id)) save(r); });
+  await sync().catch(() => {});
+}
+function signOut() {
+  S.session = null; LS.set('session', null);
+  LS.set('pinHash', null);
+  notify();
+}
+
+// ---------- app lock ----------
+async function pinHash(pin, salt) {
+  const text = 'shop-manager:' + salt + ':' + pin;
+  const data = typeof TextEncoder !== 'undefined' ? new TextEncoder().encode(text) : Array.from(text, ch => ch.charCodeAt(0));
+  if (window.crypto && crypto.subtle && typeof TextEncoder !== 'undefined') {
+    const buf = await crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+  }
+  let h = 0; for (const b of data) h = (h * 31 + b) | 0; return 'x' + h;
+}
+let lockedAt = 0;
+function isLocked() { return LS.get('locked', false); }
+function lock() { LS.set('locked', true); notify(); }
+function unlock() { LS.set('locked', false); }
+async function tryUnlock(pin) {
+  if (await pinHash(pin, S.session.user.username) !== LS.get('pinHash', '')) return false;
+  unlock(); notify(); return true;
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') { lockedAt = Date.now(); if (pendingCount()) sync().catch(() => {}); }
+  else if (S.session && lockedAt && Date.now() - lockedAt > 3 * 60 * 1000) lock();
+});
+window.addEventListener('online', () => { S.online = true; sync().catch(() => {}); });
+window.addEventListener('offline', () => { S.online = false; notify(); });
+
+async function loadStore() {
+  await DB.open();
+  (await DB.all()).forEach(r => S.recs.set(r.id, r));
+  if (S.session && !get('settings') && !S.seq) { /* fresh phone: wait for first sync */ }
+}
+const can = what => {
+  const role = S.session ? S.session.user.role : '';
+  if (role === 'owner' || role === 'family') return true;
+  return ['sales', 'cash', 'expense', 'count', 'att'].includes(what);
+};
+
+/* Dates, money and every business calculation (profit, gaps, stock, wages, predictions). */
+const pad2 = n => String(n).padStart(2, '0');
+const ymd = d => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+const parseD = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
+const today = () => ymd(new Date());
+const addDays = (s, n) => { const d = parseD(s); d.setDate(d.getDate() + n); return ymd(d); };
+const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+function dateLabel(s) {
+  const t = today();
+  if (s === t) return 'Today';
+  if (s === addDays(t, -1)) return 'Yesterday';
+  if (s === addDays(t, 1)) return 'Tomorrow';
+  const d = parseD(s);
+  return `${DOW[d.getDay()]}, ${d.getDate()} ${MON[d.getMonth()]}`;
+}
+const daysInMonth = s => { const d = parseD(s); return new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate(); };
+function range(from, to) { const out = []; for (let d = from; d <= to; d = addDays(d, 1)) out.push(d); return out; }
+
+function inr(n) {
+  n = Math.round(Number(n) || 0);
+  const neg = n < 0, s = String(Math.abs(n));
+  let last3 = s.slice(-3), rest = s.slice(0, -3);
+  if (rest) last3 = ',' + last3;
+  return (neg ? '−' : '') + rest.replace(/\B(?=(\d{2})+(?!\d))/g, ',') + last3;
+}
+const rs = n => '₹' + inr(n);
+const qty = n => (Math.round((Number(n) || 0) * 100) / 100).toString();
+const SHOP_KEYS = ['chaat', 'tea'];
+const shopName = s => s === 'both' ? 'Both shops' : s === 'shared' ? 'Shared' : ((settings().shops[s] || {}).name || s);
+const inShop = (recShop, shop) => !shop || shop === 'both' || recShop === shop;
+// Share of a cost that belongs to a shop. Shared/both costs are split 50/50 (questionnaire C14).
+const share = (recShop, shop) => !shop || shop === 'both' ? 1 : recShop === shop ? 1 : (recShop === 'shared' || recShop === 'both') ? 0.5 : 0;
+
+// ---------- items and sales ----------
+const items = shop => all('item').filter(i => i.active !== false && inShop(i.shop, shop)).sort((a, b) => (a.order || 0) - (b.order || 0));
+const saleId = (date, shop) => `sale:${date}:${shop}`;
+const saleOf = (date, shop) => get(saleId(date, shop));
+
+function saleTotals(date, shop) {
+  const out = {expected: 0, cash: 0, upi: 0, collected: 0, units: 0, entered: false, byItem: {}};
+  SHOP_KEYS.filter(s => inShop(s, shop)).forEach(s => {
+    const r = saleOf(date, s);
+    if (!r) return;
+    out.entered = true;
+    Object.keys(r.counts || {}).forEach(id => {
+      const it = get(id);
+      const n = Number(r.counts[id]) || 0;
+      const price = r.prices && r.prices[id] != null ? r.prices[id] : (it ? it.price : 0);
+      out.expected += n * price;
+      if (it && !it.parcel) out.units += n;
+      out.byItem[id] = (out.byItem[id] || 0) + n;
+    });
+    out.cash += Number(r.cash) || 0;
+    out.upi += Number(r.upi) || 0;
+  });
+  out.collected = out.cash + out.upi;
+  out.gap = out.collected - out.expected;
+  out.sales = out.collected || out.expected;   // money actually received; falls back to counts
+  return out;
+}
+
+// ---------- costs ----------
+const expensesOn = (date, shop) => all('expense').filter(e => e.date === date && share(e.shop, shop) > 0);
+function expenseTotals(date, shop) {
+  let variable = 0, fixedPaid = 0, owner = 0, cashOut = 0;
+  expensesOn(date, shop).forEach(e => {
+    const c = catOf(e.cat), amt = (Number(e.amount) || 0) * share(e.shop, shop);
+    if (c.owner) owner += amt; else if (c.fixed) fixedPaid += amt; else variable += amt;
+    if (e.pay === 'cash') cashOut += amt;
+  });
+  return {variable, fixedPaid, owner, cashOut};
+}
+function fixedPerDay(date, shop) {
+  const st = settings(), dim = daysInMonth(date);
+  let month = 0;
+  SHOP_KEYS.forEach(s => { month += (Number(st.shops[s].rent) || 0) * share(s, shop); });
+  (st.fixed || []).forEach(f => { month += (Number(f.amount) || 0) * share(f.shop, shop); });
+  return month / dim;
+}
+
+// ---------- workers ----------
+const workers = () => all('worker').filter(w => w.active !== false).sort((a, b) => a.name.localeCompare(b.name));
+const attOf = date => get('att:' + date);
+function wageFor(w, date) {
+  const a = attOf(date);
+  if (!a || !a.marks) return 0;
+  const m = a.marks[w.id];
+  const day = m === 'P' ? 1 : m === 'H' ? 0.5 : 0;
+  const ot = Number((a.ot || {})[w.id]) || 0;
+  return day * (Number(w.pay) || 0) + ot * (Number(settings().overtimeRate) || 0);
+}
+function wagesOn(date, shop) {
+  let t = 0;
+  all('worker').forEach(w => {
+    const part = share(w.shop === 'both' ? 'shared' : w.shop, shop);
+    t += wageFor(w, date) * part;
+    all('wpay').filter(p => p.worker === w.id && p.type === 'bonus' && p.date === date).forEach(p => { t += (Number(p.amount) || 0) * part; });
+  });
+  return t;
+}
+function workerBalance(w) {
+  let earned = 0, paid = 0;
+  all('att').forEach(a => { earned += wageFor(w, a.date); });
+  // Salary and advance payments reduce what is owed. A bonus is earned and paid at once, so it nets to zero.
+  all('wpay').filter(p => p.worker === w.id && p.type !== 'bonus').forEach(p => { paid += Number(p.amount) || 0; });
+  return {earned, paid, due: earned - paid};
+}
+
+// ---------- day summary ----------
+function daySummary(date, shop) {
+  const s = saleTotals(date, shop), e = expenseTotals(date, shop);
+  const wages = wagesOn(date, shop), fixed = fixedPerDay(date, shop);
+  const profit = s.sales - e.variable - wages - fixed;
+  return {date, sales: s.sales, expected: s.expected, gap: s.gap, cash: s.cash, upi: s.upi, units: s.units, entered: s.entered,
+    spend: e.variable, wages, fixed, profit, owner: e.owner, byItem: s.byItem};
+}
+function periodSummary(from, to, shop) {
+  const days = range(from, to).map(d => daySummary(d, shop));
+  const sum = k => days.reduce((a, d) => a + d[k], 0);
+  const open = days.filter(d => d.entered).length;
+  return {days, open, sales: sum('sales'), spend: sum('spend'), wages: sum('wages'), fixed: sum('fixed'), profit: sum('profit'),
+    cash: sum('cash'), upi: sum('upi'), gap: sum('gap'), expected: sum('expected')};
+}
+function itemTotals(from, to, shop) {
+  const map = {};
+  range(from, to).forEach(d => {
+    const t = saleTotals(d, shop);
+    Object.keys(t.byItem).forEach(id => { map[id] = (map[id] || 0) + t.byItem[id]; });
+  });
+  return Object.keys(map).map(id => {
+    const it = get(id) || {name: '(removed item)', price: 0, cost: 0};
+    const n = map[id];
+    return {id, item: it, n, sales: n * (it.price || 0), profit: it.cost ? n * (it.price - it.cost) : null};
+  }).filter(r => r.n > 0).sort((a, b) => b.sales - a.sales);
+}
+
+// ---------- stock ----------
+const stockItems = () => all('stock').filter(s => s.active !== false).sort((a, b) => (a.order || 0) - (b.order || 0));
+function stockLevel(s) {
+  const counts = all('count').filter(c => c.counts && c.counts[s.id] != null).sort((a, b) => a.date < b.date ? 1 : -1);
+  const last = counts[0];
+  const bought = after => all('expense').filter(e => e.stock === s.id && (!after || e.date > after)).reduce((a, e) => a + (Number(e.qty) || 0), 0);
+  const level = last ? Number(last.counts[s.id]) + bought(last.date) : null;
+  // Average daily use from the last pairs of counts: opening + bought − closing.
+  let used = 0, days = 0;
+  for (let i = 0; i + 1 < counts.length && days < 14; i++) {
+    const a = counts[i + 1], b = counts[i];
+    const inBetween = all('expense').filter(e => e.stock === s.id && e.date > a.date && e.date <= b.date).reduce((x, e) => x + (Number(e.qty) || 0), 0);
+    const u = Number(a.counts[s.id]) + inBetween - Number(b.counts[s.id]);
+    const span = Math.max(1, Math.round((parseD(b.date) - parseD(a.date)) / 864e5));
+    if (u >= 0) { used += u; days += span; }
+  }
+  const perDay = days ? used / days : null;
+  return {level, lastCount: last ? last.date : null, perDay, low: level != null && level <= (Number(s.low) || 0), daysLeft: perDay && level != null ? level / perDay : null};
+}
+
+// ---------- predictions ----------
+// Expected count for an item on a date: average of the last 4 same weekdays, else of the last 7 days.
+function expectedCount(itemId, shop, date) {
+  const same = [], recent = [];
+  for (let i = 1; i <= 28; i++) {
+    const d = addDays(date, -i), r = saleOf(d, shop);
+    if (!r || !r.counts) continue;
+    const n = Number(r.counts[itemId]) || 0;
+    if (i % 7 === 0) same.push(n);
+    if (i <= 7) recent.push(n);
+  }
+  const pick = same.length >= 2 ? same : recent;
+  return pick.length ? pick.reduce((a, b) => a + b, 0) / pick.length : null;
+}
+function forecast(date, shop) {
+  const rows = items(shop).filter(i => !i.parcel).map(i => ({item: i, n: expectedCount(i.id, i.shop, date)})).filter(r => r.n != null);
+  const sales = rows.reduce((a, r) => a + r.n * (r.item.price || 0), 0);
+  return {rows, sales, hasData: rows.some(r => r.n > 0)};
+}
+function prepPlan(date) {
+  const st = settings();
+  const tea = forecast(date, 'tea').rows;
+  const chaat = forecast(date, 'chaat').rows;
+  const cups = tea.filter(r => !r.item.resale).reduce((a, r) => a + r.n, 0);
+  const pani = chaat.filter(r => /pani puri/i.test(r.item.name)).reduce((a, r) => a + r.n, 0);
+  return {
+    cups: Math.round(cups),
+    milkL: cups * (st.milkMlPerCup || 0) / 1000,
+    teaKg: cups * (st.teaGPerCup || 0) / 1000,
+    paniPlates: Math.round(pani),
+    puriPackets: pani * (st.purisPerPlate || 6) / (st.purisPerPacket || 100)
+  };
+}
+function gasForecast() {
+  const by = {};
+  all('expense').filter(e => catOf(e.cat).gas).forEach(e => { const c = e.counter || shopName(e.shop); (by[c] = by[c] || []).push(e.date); });
+  return Object.keys(by).map(counter => {
+    const ds = by[counter].sort();
+    let gaps = [];
+    for (let i = 1; i < ds.length; i++) gaps.push((parseD(ds[i]) - parseD(ds[i - 1])) / 864e5);
+    gaps = gaps.filter(g => g > 0).slice(-5);
+    const avg = gaps.length ? gaps.reduce((a, b) => a + b, 0) / gaps.length : null;
+    return {counter, last: ds[ds.length - 1], every: avg, next: avg ? addDays(ds[ds.length - 1], Math.round(avg)) : null};
+  });
+}
+function breakEven(shop) {
+  const t = today(), from = addDays(t, -29);
+  const p = periodSummary(from, t, shop);
+  const varRatio = p.sales > 0 ? Math.min(0.95, p.spend / p.sales) : 0.5;
+  const fixedDay = fixedPerDay(t, shop) + (p.open ? p.wages / p.open : 0);
+  return {perDay: fixedDay / (1 - varRatio), varRatio, basedOn: p.open};
+}
+function payback() {
+  const st = settings();
+  const invested = SHOP_KEYS.reduce((a, s) => a + (Number(st.shops[s].investment) || 0), 0);
+  const sales = all('sale').map(r => r.date).sort();
+  if (!sales.length) return {invested, earned: 0, perDay: 0, monthsLeft: null};
+  const p = periodSummary(sales[0], today(), 'both');
+  const perDay = p.open ? p.profit / p.open : 0;
+  const left = invested - p.profit;
+  return {invested, earned: p.profit, perDay, monthsLeft: perDay > 0 ? left / perDay / 30 : null};
+}
+
+/* Small UI kit shared by every screen. */
+const $ = id => document.getElementById(id);
+function h(tag, attrs, ...kids) {
+  const e = document.createElement(tag);
+  if (attrs) for (const k in attrs) {
+    const v = attrs[k];
+    if (v == null || v === false) continue;
+    if (k === 'class') e.className = v;
+    else if (k === 'style') e.setAttribute('style', v);
+    else if (k.slice(0, 2) === 'on' && typeof v === 'function') e.addEventListener(k.slice(2), v);
+    else if (k === 'value') e.value = v;
+    else e.setAttribute(k, v === true ? '' : String(v));
+  }
+  for (const c of kids.flat(Infinity)) if (c != null && c !== false) e.append(c instanceof Node ? c : document.createTextNode(String(c)));
+  return e;
+}
+const ICONS = {
+  home: 'M3 11.5 12 4l9 7.5M5.5 10v9.5h13V10',
+  sales: 'M4 5h16v14H4zM8 9h8M8 13h5',
+  spend: 'M12 3v18M16.5 7.5c0-1.7-2-3-4.5-3s-4.5 1.3-4.5 3 2 2.6 4.5 3 4.5 1.4 4.5 3.2-2 3-4.5 3-4.5-1.3-4.5-3',
+  stock: 'M4 8l8-4 8 4-8 4-8-4zM4 8v8l8 4 8-4V8M12 12v8',
+  more: 'M5 12h.01M12 12h.01M19 12h.01'
+};
+const icon = name => {
+  const s = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  s.setAttribute('viewBox', '0 0 24 24'); s.setAttribute('aria-hidden', 'true');
+  const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  p.setAttribute('d', ICONS[name]); p.setAttribute('fill', 'none'); p.setAttribute('stroke', 'currentColor');
+  p.setAttribute('stroke-width', name === 'more' ? '3.5' : '1.8'); p.setAttribute('stroke-linecap', 'round'); p.setAttribute('stroke-linejoin', 'round');
+  s.append(p); return s;
+};
+
+let toastT = null;
+function toast(msg, action, fn) {
+  const t = $('toast');
+  t.innerHTML = '';
+  t.append(h('span', {}, msg));
+  if (action) t.append(h('button', {type: 'button', onclick: () => { t.hidden = true; fn(); }}, action));
+  t.hidden = false;
+  clearTimeout(toastT);
+  toastT = setTimeout(() => { t.hidden = true; }, action ? 6000 : 3000);
+}
+
+/** Bottom sheet. build(close) returns the body content. */
+function sheet(title, build) {
+  const root = $('sheet');
+  const close = () => { root.hidden = true; root.innerHTML = ''; };
+  root.innerHTML = '';
+  root.append(h('div', {class: 'sheet__bg', onclick: close}),
+    h('div', {class: 'sheet__p', role: 'dialog', 'aria-modal': 'true', 'aria-label': title},
+      h('div', {class: 'sheet__h'}, h('h2', {}, title), h('button', {type: 'button', class: 'iconbtn', 'aria-label': 'Close', onclick: close}, '×')),
+      build(close)));
+  root.hidden = false;
+  return close;
+}
+function confirmSheet(title, text, yes, onYes) {
+  sheet(title, close => h('div', {class: 'stack'}, h('p', {class: 'muted'}, text),
+    h('button', {type: 'button', class: 'btn btn--danger btn--block', onclick: () => { close(); onYes(); }}, yes),
+    h('button', {type: 'button', class: 'btn btn--ghost btn--block', onclick: close}, 'Cancel')));
+}
+
+function field(label, control) { return h('label', {class: 'field'}, h('span', {}, label), control); }
+function moneyIn(value, onVal, attrs) {
+  const i = h('input', Object.assign({type: 'text', inputmode: 'decimal', class: 'in', autocomplete: 'off', value: value == null || value === 0 ? '' : value, placeholder: '0'}, attrs || {}));
+  i.addEventListener('input', () => { const c = i.value.replace(/[^0-9.]/g, ''); if (c !== i.value) i.value = c; onVal(c === '' ? '' : Number(c)); });
+  return h('div', {class: 'money'}, h('b', {}, '₹'), i);
+}
+function numIn(value, onVal, attrs) {
+  const i = h('input', Object.assign({type: 'text', inputmode: 'decimal', class: 'in num', autocomplete: 'off', value: value == null ? '' : value}, attrs || {}));
+  i.addEventListener('input', () => { const c = i.value.replace(/[^0-9.]/g, ''); if (c !== i.value) i.value = c; onVal(c === '' ? '' : Number(c)); });
+  return i;
+}
+function textIn(value, onVal, attrs) {
+  const i = h('input', Object.assign({type: 'text', class: 'in', autocomplete: 'off', value: value || ''}, attrs || {}));
+  i.addEventListener('input', () => onVal(i.value));
+  return i;
+}
+function seg(options, cur, onPick) {
+  const wrap = h('div', {class: 'seg', role: 'group'});
+  const draw = v => { wrap.innerHTML = ''; options.forEach(([val, label]) => wrap.append(h('button', {type: 'button', 'aria-pressed': String(v === val), onclick: () => { draw(val); onPick(val); }}, label))); };
+  draw(cur);
+  return wrap;
+}
+function chips(options, cur, onPick) {
+  const wrap = h('div', {class: 'chips'});
+  const draw = v => { wrap.innerHTML = ''; options.forEach(o => wrap.append(h('button', {type: 'button', class: 'chip', 'aria-pressed': String(v === o.k), onclick: () => { draw(o.k); onPick(o.k); }}, o.i ? o.i + ' ' : '', o.l || o.k))); };
+  draw(cur);
+  return wrap;
+}
+
+// Shop switch: separate buttons for Both / Chaat / Tea (questionnaire L4, L5).
+let curShop = LS.get('shop', 'both');
+function shopSwitch(onChange, opts) {
+  const keys = (opts && opts.noBoth) ? SHOP_KEYS : ['both'].concat(SHOP_KEYS);
+  if (opts && opts.noBoth && curShop === 'both') curShop = 'tea';
+  const wrap = h('div', {class: 'shops', style: keys.length === 2 ? 'grid-template-columns:1fr 1fr' : null});
+  keys.forEach(k => wrap.append(h('button', {type: 'button', 'data-shop': k, 'aria-pressed': String(curShop === k),
+    onclick: () => { curShop = k; LS.set('shop', k); onChange(k); }}, k === 'both' ? 'Both' : shopName(k))));
+  return wrap;
+}
+let curDate = today();
+function dateBar(onChange) {
+  const inp = h('input', {type: 'date', value: curDate, max: today(), 'aria-label': 'Pick a date'});
+  inp.addEventListener('change', () => { if (inp.value) { curDate = inp.value; onChange(); } });
+  return h('div', {class: 'datebar'},
+    h('button', {type: 'button', class: 'iconbtn', 'aria-label': 'Previous day', onclick: () => { curDate = addDays(curDate, -1); onChange(); }}, '‹'),
+    h('div', {class: 'date'}, dateLabel(curDate), inp),
+    h('button', {type: 'button', class: 'iconbtn', 'aria-label': 'Next day', disabled: curDate >= today(), onclick: () => { curDate = addDays(curDate, 1); onChange(); }}, '›'));
+}
+function tile(label, value, sub, cls) {
+  return h('div', {class: 'tile' + (cls ? ' ' + cls : '')}, h('div', {class: 'tile__l'}, label), h('div', {class: 'tile__v'}, value), sub ? h('div', {class: 'tile__s'}, sub) : null);
+}
+function change(now, before) {
+  if (!before) return null;
+  const p = Math.round((now - before) / Math.abs(before) * 100);
+  return h('span', {class: p >= 0 ? 'up' : 'down'}, (p >= 0 ? '▲ ' : '▼ ') + Math.abs(p) + '%');
+}
+function bars(rows, fmt) {
+  const max = Math.max(1, ...rows.map(r => r.v));
+  return h('div', {class: 'bars'}, rows.map(r => h('div', {class: 'bar'}, h('span', {class: 'bar__l'}, r.l),
+    h('span', {class: 'bar__t'}, h('span', {class: 'bar__f' + (r.c ? ' bar__f--' + r.c : ''), style: `width:${Math.max(2, r.v / max * 100)}%`})),
+    h('span', {class: 'bar__v'}, fmt ? fmt(r.v) : r.v))));
+}
+function columns(rows) {
+  const max = Math.max(1, ...rows.map(r => r.v));
+  return h('div', {class: 'cols', role: 'img', 'aria-label': rows.map(r => `${r.l}: ${rs(r.v)}`).join(', ')},
+    rows.map(r => h('div', {class: 'col', title: `${r.l}: ${rs(r.v)}`}, h('div', {class: 'col__f' + (r.now ? ' col__f--now' : ''), style: `height:${Math.max(1, r.v / max * 100)}%`}), h('span', {class: 'col__l'}, r.s || r.l))));
+}
+function shareText(text) {
+  const url = 'https://wa.me/?text=' + encodeURIComponent(text);
+  if (navigator.share) navigator.share({text}).catch(() => {}); else window.open(url, '_blank');
+}
+function downloadFile(name, text, type) {
+  const a = h('a', {href: URL.createObjectURL(new Blob([text], {type: type || 'text/csv'})), download: name});
+  document.body.append(a); a.click(); a.remove();
+}
+
+/* Home: today at a glance (questionnaire L3 order), alerts, tomorrow's prep, last 7 days. */
+function screenHome(view) {
+  const t = today();
+  const showMoney = can('profit');
+  view.append(shopSwitch(() => go('home')));
+  const d = daySummary(t, curShop), y = daySummary(addDays(t, -1), curShop), w = daySummary(addDays(t, -7), curShop);
+
+  // Alerts first, so anything that needs action is seen.
+  const alerts = [];
+  SHOP_KEYS.filter(s => inShop(s, curShop)).forEach(s => {
+    if (!saleOf(t, s) && new Date().getHours() >= 21) alerts.push(['warn', `Today's sales for ${shopName(s)} are not entered yet.`, () => { curShop = s; go('sales'); }]);
+  });
+  if (d.entered && Math.abs(d.gap) >= 50) alerts.push([d.gap < 0 ? 'bad' : 'warn', `Money received is ${rs(Math.abs(d.gap))} ${d.gap < 0 ? 'less' : 'more'} than the items sold today.`, () => go('sales')]);
+  const low = stockItems().filter(s => inShop(s.shop === 'both' ? curShop : s.shop, curShop) || curShop === 'both').map(s => ({s, l: stockLevel(s)})).filter(x => x.l.low);
+  if (low.length) alerts.push(['warn', `Low stock: ${low.map(x => x.s.name).join(', ')}`, () => go('stock')]);
+  gasForecast().filter(g => g.next && g.next <= addDays(t, 1)).forEach(g => alerts.push(['warn', `${g.counter} gas cylinder likely runs out ${dateLabel(g.next).toLowerCase()}.`, () => go('stock')]));
+  alerts.forEach(([kind, text, fn]) => view.append(h('button', {type: 'button', class: 'alert card--tap' + (kind === 'bad' ? ' alert--bad' : ''), onclick: fn}, h('span', {}, kind === 'bad' ? '⚠️' : '🔔'), h('span', {class: 'grow'}, text))));
+
+  view.append(h('div', {class: 'tiles'},
+    tile("Today's sales", rs(d.sales), h('span', {}, 'vs yesterday ', change(d.sales, y.sales) || '–', ' · last ' + DOW[parseD(t).getDay()] + ' ', change(d.sales, w.sales) || '–'), 'tile--wide tile--hero'),
+    showMoney ? tile("Today's profit", rs(d.profit), `after ${rs(d.spend + d.wages + d.fixed)} costs`) : null,
+    tile('Cash received', rs(d.cash), d.entered ? 'from sales entry' : 'not entered yet'),
+    tile('UPI received', rs(d.upi), d.cash + d.upi ? Math.round(d.upi / (d.cash + d.upi) * 100) + '% of money in' : ''),
+    showMoney ? null : tile('Items sold', String(d.units))));
+
+  view.append(h('div', {class: 'grid2'},
+    h('button', {type: 'button', class: 'btn btn--primary btn--big', onclick: () => { curDate = t; go('sales'); }}, '+ Sales'),
+    h('button', {type: 'button', class: 'btn btn--soft btn--big', onclick: () => { curDate = t; go('spend'); }}, '+ Expense')));
+
+  // Day tags (rain, holiday...) improve predictions (K7).
+  const tag = get('tag:' + t) || {id: 'tag:' + t, kind: 'tag', date: t, tags: []};
+  const tagWrap = h('div', {class: 'chips'});
+  const drawTags = () => {
+    tagWrap.innerHTML = '';
+    DAY_TAGS.forEach(k => tagWrap.append(h('button', {type: 'button', class: 'chip', 'aria-pressed': String(tag.tags.includes(k)), onclick: () => {
+      tag.tags = tag.tags.includes(k) ? tag.tags.filter(x => x !== k) : tag.tags.concat([k]);
+      save(tag); drawTags();
+    }}, k)));
+  };
+  drawTags();
+  view.append(h('div', {class: 'card'}, h('p', {class: 'eyebrow'}, 'Anything unusual today?'), tagWrap));
+
+  // Tomorrow: expected sales and what to prepare (K5).
+  const tm = addDays(t, 1);
+  const fc = forecast(tm, curShop), prep = prepPlan(tm);
+  const prepRows = [];
+  if (inShop('tea', curShop) && prep.cups) prepRows.push(['Tea/coffee cups', String(prep.cups)], ['Milk to buy', qty(prep.milkL.toFixed(1)) + ' L'], ['Tea powder', qty(prep.teaKg.toFixed(2)) + ' kg']);
+  if (inShop('chaat', curShop) && prep.paniPlates) prepRows.push(['Pani puri plates', String(prep.paniPlates)], ['Puri packets', qty(prep.puriPackets.toFixed(1))]);
+  view.append(h('div', {class: 'card'},
+    h('div', {class: 'row row--between'}, h('p', {class: 'eyebrow'}, `Tomorrow · ${dateLabel(tm) === 'Tomorrow' ? DOW[parseD(tm).getDay()] : dateLabel(tm)}`), h('button', {type: 'button', class: 'link', onclick: () => go('reports')}, 'More')),
+    fc.hasData
+      ? [h('div', {class: 'tile__v'}, rs(fc.sales)), h('p', {class: 'muted small'}, 'Expected sales, from the same weekday in recent weeks'),
+        prepRows.length ? h('table', {class: 't'}, prepRows.map(([a, b]) => h('tr', {}, h('td', {}, a), h('td', {class: 'r'}, b)))) : null]
+      : h('p', {class: 'muted'}, 'Predictions start after a few days of sales entries.')));
+
+  // Last 7 days.
+  const days = range(addDays(t, -6), t).map(dd => ({l: dd, s: DOW[parseD(dd).getDay()].slice(0, 2), v: daySummary(dd, curShop).sales, now: dd === t}));
+  view.append(h('div', {class: 'card'}, h('p', {class: 'eyebrow'}, 'Sales, last 7 days'), columns(days),
+    h('p', {class: 'muted small', style: 'margin-top:6px'}, `Total ${rs(days.reduce((a, x) => a + x.v, 0))}`)));
+}
+
+/* Sales entry at closing: tap +/- per item, then money received (cash + UPI). Saves as you tap. */
+function screenSales(view) {
+  view.classList.add('view--sum');
+  view.append(shopSwitch(() => go('sales'), {noBoth: true}));
+  view.append(dateBar(() => go('sales')));
+  const shop = curShop, date = curDate;
+  const id = saleId(date, shop);
+  const rec = Object.assign({id, kind: 'sale', date, shop, counts: {}, prices: {}, cash: '', upi: '', unpaid: ''}, saleOf(date, shop) || {});
+  rec.counts = Object.assign({}, rec.counts); rec.prices = Object.assign({}, rec.prices);
+  let saveT = null;
+  const persist = () => { clearTimeout(saveT); saveT = setTimeout(() => save(rec), 400); };
+  const list = items(shop);
+  const priceOf = it => rec.prices[it.id] != null ? rec.prices[it.id] : it.price;
+
+  const totalEl = h('b', {}, rs(0)), gapEl = h('span', {class: 'small'});
+  const upd = () => {
+    let total = 0;
+    list.forEach(it => { total += (Number(rec.counts[it.id]) || 0) * priceOf(it); });
+    const got = (Number(rec.cash) || 0) + (Number(rec.upi) || 0);
+    totalEl.textContent = rs(total);
+    if (!got) { gapEl.className = 'small muted'; gapEl.textContent = 'from items sold'; }
+    else {
+      const gap = got - total;
+      gapEl.className = 'small ' + (Math.abs(gap) < 20 ? 'up' : 'down');
+      gapEl.textContent = Math.abs(gap) < 1 ? 'matches money received ✓' : `received ${rs(got)} (${gap > 0 ? '+' : '−'}${rs(Math.abs(gap))})`;
+    }
+  };
+
+  if (!list.length) view.append(h('div', {class: 'empty'}, 'No items yet. Add your menu in More → Menu and prices.'));
+  const grid = h('div', {class: 'items'});
+  list.forEach(it => {
+    const card = h('div', {class: 'item'});
+    const inp = h('input', {type: 'text', inputmode: 'numeric', value: rec.counts[it.id] || '', placeholder: '0', 'aria-label': it.name + ' count'});
+    const set = n => {
+      n = Math.max(0, Math.round(Number(n) || 0));
+      if (n) { rec.counts[it.id] = n; rec.prices[it.id] = it.price; } else { delete rec.counts[it.id]; delete rec.prices[it.id]; }
+      inp.value = n || '';
+      card.classList.toggle('item--on', n > 0);
+      persist(); upd();
+    };
+    inp.addEventListener('input', () => set(inp.value.replace(/\D/g, '')));
+    card.classList.toggle('item--on', (rec.counts[it.id] || 0) > 0);
+    card.append(
+      h('div', {class: 'item__top'}, h('span', {class: 'item__ico', 'aria-hidden': 'true'}, it.icon || '•'),
+        h('div', {class: 'grow'}, h('div', {class: 'item__name'}, it.name),
+          h('div', {class: 'item__price'}, it.price ? rs(priceOf(it)) : h('span', {class: 'down'}, 'price not set')))),
+      h('div', {class: 'ctr'},
+        h('button', {type: 'button', 'aria-label': 'One less ' + it.name, onclick: () => set((Number(rec.counts[it.id]) || 0) - 1)}, '−'),
+        inp,
+        h('button', {type: 'button', class: 'plus', 'aria-label': 'One more ' + it.name, onclick: () => set((Number(rec.counts[it.id]) || 0) + 1)}, '+')));
+    grid.append(card);
+  });
+  view.append(h('p', {class: 'eyebrow', style: 'margin-top:10px'}, 'Items sold'), grid);
+
+  view.append(h('h3', {class: 'h3'}, 'Money received'),
+    h('div', {class: 'grid2'},
+      field('Cash', moneyIn(rec.cash, v => { rec.cash = v; persist(); upd(); })),
+      field('UPI', moneyIn(rec.upi, v => { rec.upi = v; persist(); upd(); }))),
+    field('Left without paying / change short (optional)', moneyIn(rec.unpaid, v => { rec.unpaid = v; persist(); })),
+    field('Note (optional)', textIn(rec.note, v => { rec.note = v; persist(); }, {placeholder: 'e.g. rain from 6 pm'})));
+
+  if (saleOf(date, shop)) view.append(h('button', {type: 'button', class: 'link', onclick: () => confirmSheet('Clear this day?', `This removes the ${shopName(shop)} sales entry for ${dateLabel(date).toLowerCase()}.`, 'Clear sales entry', () => { remove(id); toast('Sales entry cleared'); go('sales'); })}, 'Clear this day'));
+
+  const bar = h('div', {class: 'sumbar'}, h('div', {class: 'sumbar__in'},
+    h('div', {class: 'grow'}, h('div', {class: 'small muted'}, `${shopName(shop)} · ${dateLabel(date)}`), h('div', {}, totalEl, ' ', gapEl)),
+    h('button', {type: 'button', class: 'btn btn--primary', onclick: () => { clearTimeout(saveT); save(rec); toast('Saved'); }}, 'Save')));
+  view.append(bar);
+  upd();
+}
+
+/* Expenses and purchases. A purchase can add quantity to a stock item; gas entries feed refill predictions. */
+function screenSpend(view) {
+  view.append(shopSwitch(() => go('spend')));
+  view.append(dateBar(() => go('spend')));
+  const list = expensesOn(curDate, curShop).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+  const total = list.reduce((a, e) => a + (Number(e.amount) || 0) * share(e.shop, curShop), 0);
+  view.append(h('button', {type: 'button', class: 'btn btn--primary btn--big btn--block', onclick: () => expenseForm(null)}, '+ Add expense or purchase'));
+  view.append(h('div', {class: 'row row--between', style: 'margin:16px 0 8px'}, h('p', {class: 'eyebrow'}, `${dateLabel(curDate)} · ${list.length} entr${list.length === 1 ? 'y' : 'ies'}`), h('b', {class: 'num'}, rs(total))));
+  if (!list.length) view.append(h('div', {class: 'empty'}, 'Nothing spent on this day yet.'));
+  view.append(h('div', {class: 'list'}, list.map(e => {
+    const c = catOf(e.cat), st = e.stock ? get(e.stock) : null;
+    const sub = [shopName(e.shop), e.pay === 'cash' ? 'cash' : e.pay === 'upi' ? 'UPI' : 'own pocket'];
+    if (st && e.qty) sub.push(`${qty(e.qty)} ${st.unit} ${st.name}`);
+    if (e.counter) sub.push(e.counter + ' counter');
+    if (c.fixed) sub.push('already in daily running costs');
+    if (c.owner) sub.push('not a business cost');
+    return h('button', {type: 'button', class: 'li', onclick: () => expenseForm(e)},
+      h('span', {class: 'li__ico'}, c.i), h('span', {class: 'li__main'}, h('div', {class: 'li__t'}, e.note ? `${e.cat}: ${e.note}` : e.cat), h('div', {class: 'li__s'}, sub.join(' · '), e.photo ? ' · 📷' : '')),
+      h('span', {class: 'li__v'}, rs(e.amount)));
+  })));
+}
+
+function expenseForm(existing) {
+  const e = Object.assign({kind: 'expense', date: curDate, shop: curShop === 'both' ? 'shared' : curShop, pay: 'upi', cat: 'Milk', amount: ''}, existing || {});
+  sheet(existing ? 'Edit expense' : 'Add expense', close => {
+    const body = h('div', {});
+    const extra = h('div', {});
+    const stockSel = h('select', {class: 'in'});
+    const drawExtra = () => {
+      extra.innerHTML = '';
+      const c = catOf(e.cat);
+      if (c.gas) {
+        extra.append(field('Which counter got the new cylinder?', seg([['Tea', 'Tea'], ['Chaat', 'Chaat'], ['Bajji', 'Bajji']], e.counter || 'Tea', v => { e.counter = v; })));
+        if (!e.counter) e.counter = 'Tea';
+      } else delete e.counter;
+      // Link to a stock item so purchases update stock levels.
+      stockSel.innerHTML = '';
+      stockSel.append(h('option', {value: ''}, 'Not a stock item'));
+      stockItems().forEach(s => stockSel.append(h('option', {value: s.id, selected: e.stock === s.id}, `${s.name} (${s.unit})`)));
+      if (!existing && !e.stock) {
+        const guess = stockItems().find(s => s.name.toLowerCase().startsWith(String(e.cat).toLowerCase().split(' ')[0]));
+        if (guess && !c.fixed && !c.owner) { e.stock = guess.id; stockSel.value = guess.id; }
+      }
+      const qtyIn = numIn(e.qty, v => { e.qty = v; }, {placeholder: 'Quantity'});
+      stockSel.onchange = () => { e.stock = stockSel.value || undefined; qtyWrap.hidden = !e.stock; };
+      const qtyWrap = field('How much did you buy?', qtyIn);
+      qtyWrap.hidden = !e.stock;
+      if (!c.fixed && !c.owner) extra.append(field('Adds to stock', stockSel), qtyWrap);
+    };
+    body.append(
+      field('What for?', chips(CATS.map(c => ({k: c.k, i: c.i})), e.cat, v => { e.cat = v; if (!existing) delete e.stock; drawExtra(); })),
+      field('Amount', moneyIn(e.amount, v => { e.amount = v; }, {autofocus: true})),
+      field('Shop', seg([['chaat', shopName('chaat')], ['tea', shopName('tea')], ['shared', 'Shared']], e.shop, v => { e.shop = v; })),
+      field('Paid by', seg([['cash', 'Cash box'], ['upi', 'UPI'], ['own', 'Own pocket']], e.pay, v => { e.pay = v; })),
+      extra,
+      field('Date', (() => { const i = h('input', {type: 'date', class: 'in', value: e.date, max: today()}); i.onchange = () => { e.date = i.value || e.date; }; return i; })()),
+      field('Note (optional)', textIn(e.note, v => { e.note = v; }, {placeholder: 'e.g. supplier name'})),
+      photoPicker(e));
+    drawExtra();
+    body.append(h('div', {class: 'stack', style: 'margin-top:14px'},
+      h('button', {type: 'button', class: 'btn btn--primary btn--big btn--block', onclick: () => {
+        if (!(Number(e.amount) > 0)) { toast('Enter the amount'); return; }
+        if (!e.stock) { delete e.stock; delete e.qty; }
+        save(e); close(); toast('Expense saved'); go('spend');
+      }}, 'Save'),
+      existing ? h('button', {type: 'button', class: 'btn btn--danger btn--block', onclick: () => { remove(e.id); close(); toast('Deleted', 'Undo', () => { save(Object.assign({}, e, {deleted: 0})); go('spend'); }); go('spend'); }}, 'Delete') : null));
+    return body;
+  });
+}
+
+// Bill photo (questionnaire F5a). Uploads to the owner's Google Drive when online.
+function photoPicker(e) {
+  const status = h('span', {class: 'small muted'}, e.photo ? 'Photo saved ✓' : '');
+  const inp = h('input', {type: 'file', accept: 'image/*', capture: 'environment', hidden: true});
+  inp.addEventListener('change', async () => {
+    const f = inp.files[0]; if (!f) return;
+    status.textContent = 'Uploading…';
+    try {
+      const b64 = await shrinkPhoto(f);
+      const d = await api('photo', {name: `bill-${e.date}-${Date.now()}.jpg`, mime: 'image/jpeg', b64});
+      e.photo = d.url; status.textContent = 'Photo saved ✓';
+    } catch (err) { status.textContent = 'Could not upload: ' + err.message; }
+  });
+  return h('div', {class: 'row', style: 'margin:10px 0'}, h('button', {type: 'button', class: 'btn btn--soft', onclick: () => inp.click()}, '📷 Bill photo'), status, inp);
+}
+function shrinkPhoto(file) {
+  return new Promise((res, rej) => {
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onload = () => {
+      const s = Math.min(1, 1400 / Math.max(img.width, img.height)), c = document.createElement('canvas');
+      c.width = Math.round(img.width * s); c.height = Math.round(img.height * s);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      res(c.toDataURL('image/jpeg', 0.75).split(',')[1]);
+    };
+    img.onerror = () => rej(new Error('not an image'));
+    img.src = url;
+  });
+}
+
+/* Stock: closing counts, levels, usage per day, shopping list, gas refills (questionnaire G1–G6, F11, J2). */
+function screenStock(view) {
+  const t = today();
+  const list = stockItems().map(s => ({s, l: stockLevel(s)}));
+  const counted = get('count:' + t);
+  view.append(h('button', {type: 'button', class: 'btn btn--primary btn--big btn--block', style: 'margin-top:8px', onclick: () => countForm(t)},
+    counted ? '✓ Counted today · edit count' : 'Count stock at closing'));
+  view.append(h('p', {class: 'muted small', style: 'margin-top:6px'}, 'Count what is left at closing. The app works out usage: opening + bought − closing.'));
+
+  // Shopping list for tomorrow: enough for 2 days, plus milk from tomorrow's expected cups.
+  const buy = [];
+  list.forEach(({s, l}) => {
+    if (l.perDay && l.level != null && l.level < l.perDay * 2) buy.push([s.name, `${qty(Math.ceil((l.perDay * 2 - l.level) * 10) / 10)} ${s.unit}`]);
+    else if (l.low && !l.perDay) buy.push([s.name, 'running low']);
+  });
+  const prep = prepPlan(addDays(t, 1));
+  if (prep.milkL && !buy.some(b => b[0] === 'Milk')) buy.unshift(['Milk (for tomorrow)', qty(prep.milkL.toFixed(1)) + ' L']);
+  view.append(h('div', {class: 'card'}, h('p', {class: 'eyebrow'}, 'Shopping list for tomorrow'),
+    buy.length ? h('table', {class: 't'}, buy.map(([a, b]) => h('tr', {}, h('td', {}, a), h('td', {class: 'r'}, b))))
+      : h('p', {class: 'muted'}, 'Nothing needed yet. The list fills in after 2 days of stock counts.'),
+    buy.length ? h('button', {type: 'button', class: 'link', onclick: () => shareText('Shopping list:\n' + buy.map(b => `• ${b[0]}: ${b[1]}`).join('\n'))}, 'Share on WhatsApp') : null));
+
+  const gas = gasForecast();
+  view.append(h('div', {class: 'card'}, h('p', {class: 'eyebrow'}, 'Gas cylinders'),
+    gas.length ? h('table', {class: 't'}, h('tr', {}, h('th', {}, 'Counter'), h('th', {}, 'Last new'), h('th', {class: 'r'}, 'Next due')),
+      gas.map(g => h('tr', {}, h('td', {}, g.counter), h('td', {}, dateLabel(g.last)), h('td', {class: 'r'}, g.next ? dateLabel(g.next) : 'after 2nd refill'))))
+      : h('p', {class: 'muted'}, 'Add each new cylinder as a "Gas" expense, with its counter. Refill dates are predicted from that.')));
+
+  view.append(h('div', {class: 'row row--between', style: 'margin-top:14px'}, h('p', {class: 'eyebrow'}, 'Stock now'),
+    can('setup') ? h('button', {type: 'button', class: 'link', onclick: () => stockForm(null)}, '+ Add stock item') : null));
+  view.append(h('div', {class: 'list'}, list.map(({s, l}) => h('button', {type: 'button', class: 'li', onclick: () => can('setup') && stockForm(s)},
+    h('span', {class: 'li__main'}, h('div', {class: 'li__t'}, s.name, ' ', l.low ? h('span', {class: 'pill pill--warn'}, 'Low') : null),
+      h('div', {class: 'li__s'}, l.lastCount ? `Counted ${dateLabel(l.lastCount).toLowerCase()}` + (l.perDay ? ` · uses ${qty(l.perDay.toFixed(2))} ${s.unit}/day` : '') + (l.daysLeft != null && l.perDay ? ` · ~${Math.floor(l.daysLeft)} days left` : '') : 'Not counted yet')),
+    h('span', {class: 'li__v'}, l.level == null ? '–' : `${qty(l.level)} ${s.unit}`)))));
+}
+
+function countForm(date) {
+  const rec = Object.assign({id: 'count:' + date, kind: 'count', date, counts: {}}, get('count:' + date) || {});
+  rec.counts = Object.assign({}, rec.counts);
+  sheet(`Closing count · ${dateLabel(date)}`, close => h('div', {},
+    h('p', {class: 'muted small'}, 'Leave an item blank if you did not count it.'),
+    stockItems().map(s => field(`${s.name} (${s.unit})`, numIn(rec.counts[s.id], v => { if (v === '') delete rec.counts[s.id]; else rec.counts[s.id] = v; }, {placeholder: 'left now'}))),
+    h('button', {type: 'button', class: 'btn btn--primary btn--big btn--block', style: 'margin-top:10px', onclick: () => { save(rec); close(); toast('Count saved'); go('stock'); }}, 'Save count')));
+}
+
+function stockForm(existing) {
+  const s = Object.assign({kind: 'stock', name: '', unit: 'kg', shop: 'both', low: '', cost: '', active: true, order: 99}, existing || {});
+  sheet(existing ? 'Edit stock item' : 'New stock item', close => h('div', {},
+    field('Name', textIn(s.name, v => { s.name = v; }, {placeholder: 'e.g. Sev'})),
+    field('Unit', chips(['kg', 'g', 'L', 'packet', 'pcs', 'box', 'bag'].map(k => ({k})), s.unit, v => { s.unit = v; })),
+    field('Used in', seg([['chaat', shopName('chaat')], ['tea', shopName('tea')], ['both', 'Both']], s.shop, v => { s.shop = v; })),
+    field(`Warn me when below (${s.unit})`, numIn(s.low, v => { s.low = v; })),
+    field('Usual price per unit', moneyIn(s.cost, v => { s.cost = v; })),
+    h('button', {type: 'button', class: 'btn btn--primary btn--big btn--block', onclick: () => { if (!s.name.trim()) { toast('Give it a name'); return; } save(s); close(); go('stock'); }}, 'Save'),
+    existing ? h('button', {type: 'button', class: 'btn btn--danger btn--block', style: 'margin-top:8px', onclick: () => { save(Object.assign({}, s, {active: false})); close(); toast('Removed'); go('stock'); }}, 'Stop tracking this item') : null));
+}
+
+/* Workers: daily attendance (present / half day / absent + overtime), payments, advances, monthly sheet. */
+function screenWorkers(view) {
+  view.append(dateBar(() => go('workers')));
+  const ws = workers();
+  const date = curDate;
+  const att = Object.assign({id: 'att:' + date, kind: 'att', date, marks: {}, ot: {}}, attOf(date) || {});
+  att.marks = Object.assign({}, att.marks); att.ot = Object.assign({}, att.ot);
+  const showPay = can('setup');
+  if (showPay) view.append(h('button', {type: 'button', class: 'btn btn--soft btn--block', onclick: () => workerForm(null)}, '+ Add worker'));
+  if (!ws.length) { view.append(h('div', {class: 'empty', style: 'margin-top:10px'}, 'No workers yet. Add your 5 workers with their daily pay.')); return; }
+
+  const totalEl = h('b', {class: 'num'});
+  const upd = () => { totalEl.textContent = showPay ? rs(ws.reduce((a, w) => a + wageFor(w, date), 0)) : ''; };
+  view.append(h('div', {class: 'row row--between', style: 'margin:14px 0 6px'}, h('p', {class: 'eyebrow'}, `Attendance · ${dateLabel(date)}`), totalEl));
+  view.append(h('div', {class: 'list'}, ws.map(w => {
+    const bal = showPay ? workerBalance(w) : null;
+    const otIn = numIn(att.ot[w.id], v => { if (v) att.ot[w.id] = v; else delete att.ot[w.id]; save(att); upd(); }, {placeholder: '0', style: 'max-width:90px', 'aria-label': 'Overtime hours for ' + w.name});
+    return h('div', {class: 'card', style: 'margin:0'},
+      h('div', {class: 'row row--between'},
+        h('button', {type: 'button', class: 'link', style: 'color:var(--ink);font-size:18px', onclick: () => showPay && workerSheet(w)}, w.name),
+        bal ? h('span', {class: 'small ' + (bal.due > 0 ? 'down' : 'muted')}, bal.due > 0 ? `owed ${rs(bal.due)}` : bal.due < 0 ? `advance ${rs(-bal.due)}` : 'settled') : null),
+      h('div', {class: 'small muted'}, [w.role, shopName(w.shop), showPay && w.pay ? `${rs(w.pay)}/day` : null].filter(Boolean).join(' · ')),
+      h('div', {style: 'margin-top:8px'}, seg([['P', 'Present'], ['H', 'Half day'], ['A', 'Absent']], att.marks[w.id] || '', v => { att.marks[w.id] = v; save(att); upd(); })),
+      h('div', {class: 'row', style: 'margin-top:8px'}, h('span', {class: 'small muted grow'}, 'Overtime hours'), otIn));
+  })));
+  upd();
+}
+
+function workerForm(existing) {
+  const w = Object.assign({kind: 'worker', name: '', role: 'Helper', shop: 'both', pay: '', phone: '', joined: today(), active: true}, existing || {});
+  sheet(existing ? 'Edit worker' : 'Add worker', close => h('div', {},
+    field('Name or nickname', textIn(w.name, v => { w.name = v; })),
+    field('Role', chips(['Chaat master', 'Tea master', 'Helper', 'Cleaner', 'Cashier'].map(k => ({k})), w.role, v => { w.role = v; })),
+    field('Works at', seg([['chaat', shopName('chaat')], ['tea', shopName('tea')], ['both', 'Both']], w.shop, v => { w.shop = v; })),
+    field('Pay per day', moneyIn(w.pay, v => { w.pay = v; })),
+    field('Phone (optional)', textIn(w.phone, v => { w.phone = v; }, {inputmode: 'tel'})),
+    field('Joining date', (() => { const i = h('input', {type: 'date', class: 'in', value: w.joined}); i.onchange = () => { w.joined = i.value; }; return i; })()),
+    h('button', {type: 'button', class: 'btn btn--primary btn--big btn--block', onclick: () => { if (!w.name.trim()) { toast('Enter a name'); return; } save(w); close(); go('workers'); }}, 'Save'),
+    existing ? h('button', {type: 'button', class: 'btn btn--danger btn--block', style: 'margin-top:8px', onclick: () => { save(Object.assign({}, w, {active: false, left: today()})); close(); toast(`${w.name} marked as left`); go('workers'); }}, 'Worker has left') : null));
+}
+
+// One worker: this month's sheet and payments (I5, I16).
+function workerSheet(w) {
+  const t = today(), from = t.slice(0, 8) + '01';
+  const days = range(from, t);
+  let present = 0, half = 0, absent = 0, ot = 0, earned = 0;
+  days.forEach(d => { const a = attOf(d); if (!a || !a.marks) return; const m = a.marks[w.id]; if (m === 'P') present++; if (m === 'H') half++; if (m === 'A') absent++; ot += Number((a.ot || {})[w.id]) || 0; earned += wageFor(w, d); });
+  const pays = all('wpay').filter(p => p.worker === w.id).sort((a, b) => a.date < b.date ? 1 : -1);
+  const month = pays.filter(p => p.date >= from);
+  const sum = type => month.filter(p => p.type === type).reduce((a, p) => a + (Number(p.amount) || 0), 0);
+  const bal = workerBalance(w);
+  const p = {kind: 'wpay', worker: w.id, date: t, type: 'salary', amount: '', pay: 'cash'};
+  sheet(w.name, close => h('div', {},
+    h('div', {class: 'tiles'}, tile(bal.due >= 0 ? 'Owed now' : 'Advance given', rs(Math.abs(bal.due)), 'all time'), tile('Earned this month', rs(earned), `${present} full · ${half} half · ${absent} absent`)),
+    h('table', {class: 't'},
+      [['Overtime hours', qty(ot)], ['Salary paid this month', rs(sum('salary'))], ['Advances this month', rs(sum('advance'))], ['Bonus this month', rs(sum('bonus'))]]
+        .map(([a, b]) => h('tr', {}, h('td', {}, a), h('td', {class: 'r'}, b)))),
+    h('h3', {class: 'h3'}, 'Record a payment'),
+    field('Type', seg([['salary', 'Salary'], ['advance', 'Advance'], ['bonus', 'Bonus']], p.type, v => { p.type = v; })),
+    field('Amount', moneyIn(bal.due > 0 ? Math.round(bal.due) : '', v => { p.amount = v; })),
+    field('Paid by', seg([['cash', 'Cash'], ['upi', 'UPI']], p.pay, v => { p.pay = v; })),
+    h('button', {type: 'button', class: 'btn btn--primary btn--big btn--block', onclick: () => {
+      if (p.amount === '' && bal.due > 0) p.amount = Math.round(bal.due);
+      if (!(Number(p.amount) > 0)) { toast('Enter the amount'); return; }
+      save(p); close(); toast('Payment saved'); go('workers');
+    }}, 'Save payment'),
+    h('h3', {class: 'h3'}, 'Recent payments'),
+    pays.length ? h('table', {class: 't'}, pays.slice(0, 15).map(x => h('tr', {}, h('td', {}, dateLabel(x.date)), h('td', {}, x.type), h('td', {class: 'r'}, rs(x.amount)),
+      h('td', {class: 'r'}, h('button', {type: 'button', class: 'link', onclick: () => { remove(x.id); close(); toast('Payment removed'); go('workers'); }}, 'Remove')))))
+      : h('p', {class: 'muted'}, 'No payments yet.'),
+    h('button', {type: 'button', class: 'btn btn--ghost btn--block', style: 'margin-top:12px', onclick: () => { close(); workerForm(w); }}, 'Edit worker details')));
+}
+
+/* Daily cash tally (H16–H18): expected cash in the box vs counted by notes, shortage or excess recorded. */
+const NOTES = [500, 200, 100, 50, 20, 10, 5, 2, 1];
+function expectedCash(date, shop) {
+  const st = settings();
+  const float = Number(shop === 'chaat' ? st.floatChaat : st.floatTea) || 0;
+  const sales = saleTotals(date, shop).cash;
+  const spent = expensesOn(date, shop).filter(e => e.pay === 'cash').reduce((a, e) => a + (Number(e.amount) || 0) * share(e.shop, shop), 0);
+  const wages = all('wpay').filter(p => p.date === date && p.pay === 'cash').reduce((a, p) => {
+    const w = get(p.worker); return a + (Number(p.amount) || 0) * share(w && w.shop !== 'both' ? w.shop : 'shared', shop);
+  }, 0);
+  return {float, sales, spent, wages, expected: float + sales - spent - wages};
+}
+function screenCash(view) {
+  view.append(shopSwitch(() => go('cash'), {noBoth: true}));
+  view.append(dateBar(() => go('cash')));
+  const shop = curShop, date = curDate;
+  const ex = expectedCash(date, shop);
+  const rec = Object.assign({id: `cash:${date}:${shop}`, kind: 'cash', date, shop, notes: {}}, get(`cash:${date}:${shop}`) || {});
+  rec.notes = Object.assign({}, rec.notes);
+
+  view.append(h('div', {class: 'card'}, h('p', {class: 'eyebrow'}, 'Cash that should be in the box'),
+    h('table', {class: 't'},
+      [['Change kept at opening', '+ ' + rs(ex.float)], ['Cash sales (from sales entry)', '+ ' + rs(ex.sales)], ['Cash spent from box', '− ' + rs(ex.spent)], ['Cash paid to workers', '− ' + rs(ex.wages)]]
+        .map(([a, b]) => h('tr', {}, h('td', {}, a), h('td', {class: 'r'}, b))),
+      h('tr', {}, h('th', {}, 'Expected'), h('th', {class: 'r'}, rs(ex.expected)))),
+    !saleTotals(date, shop).entered ? h('p', {class: 'small down', style: 'margin-top:6px'}, 'Enter today\'s sales first, so the cash sales figure is right.') : null));
+
+  const countedEl = h('div', {class: 'tile__v'}), diffEl = h('div', {class: 'tile__v'});
+  const total = () => NOTES.reduce((a, n) => a + n * (Number(rec.notes[n]) || 0), 0);
+  const upd = () => {
+    const c = total(), d = c - ex.expected;
+    countedEl.textContent = rs(c);
+    diffEl.textContent = Math.abs(d) < 1 ? 'Matches ✓' : (d < 0 ? 'Short ' : 'Extra ') + rs(Math.abs(d));
+    diffEl.className = 'tile__v ' + (Math.abs(d) < 1 ? 'up' : 'down');
+  };
+  let t = null;
+  const persist = () => { clearTimeout(t); t = setTimeout(() => { rec.counted = total(); rec.expected = ex.expected; rec.diff = rec.counted - ex.expected; save(rec); }, 500); };
+  view.append(h('p', {class: 'eyebrow', style: 'margin-top:14px'}, 'Count the notes and coins'));
+  view.append(h('div', {class: 'grid2'}, NOTES.map(n => field(n >= 10 ? `₹${n} notes` : `₹${n} coins`,
+    numIn(rec.notes[n], v => { if (v) rec.notes[n] = v; else delete rec.notes[n]; persist(); upd(); }, {inputmode: 'numeric', placeholder: 'how many'})))));
+  view.append(h('div', {class: 'tiles'}, h('div', {class: 'tile'}, h('div', {class: 'tile__l'}, 'Counted'), countedEl), h('div', {class: 'tile'}, h('div', {class: 'tile__l'}, 'Difference'), diffEl)));
+  view.append(field('Note (optional)', textIn(rec.note, v => { rec.note = v; persist(); }, {placeholder: 'e.g. ₹100 given for milk'})));
+  if (can('setup')) view.append(field(`Change kept at opening, ${shopName(shop)} (every day)`, moneyIn(ex.float, v => {
+    const st = Object.assign({}, settings()); st[shop === 'chaat' ? 'floatChaat' : 'floatTea'] = v || 0; save(st);
+  })));
+  upd();
+}
+
+/* Reports (L1): period summary, chaat vs tea, items, weekday vs weekend, expenses, payback, break-even, export. */
+let curPeriod = 'month';
+function periodRange(p) {
+  const t = today(), d = parseD(t);
+  if (p === 'today') return [t, t, 'Today'];
+  if (p === 'week') return [addDays(t, -((d.getDay() + 6) % 7)), t, 'This week'];
+  if (p === 'month') return [t.slice(0, 8) + '01', t, 'This month'];
+  if (p === 'last') { const f = ymd(new Date(d.getFullYear(), d.getMonth() - 1, 1)); return [f, ymd(new Date(d.getFullYear(), d.getMonth(), 0)), 'Last month']; }
+  return [ymd(new Date(d.getFullYear(), 0, 1)), t, 'This year'];
+}
+function screenReports(view) {
+  view.append(shopSwitch(() => go('reports')));
+  view.append(seg([['today', 'Today'], ['week', 'Week'], ['month', 'Month'], ['last', 'Last mo.'], ['year', 'Year']], curPeriod, v => { curPeriod = v; go('reports'); }));
+  const [from, to, label] = periodRange(curPeriod);
+  const p = periodSummary(from, to, curShop);
+  view.append(h('p', {class: 'muted small', style: 'margin-top:8px'}, `${label}: ${dateLabel(from)} – ${dateLabel(to)} · sales entered for ${p.open} day${p.open === 1 ? '' : 's'}`));
+  view.append(h('div', {class: 'tiles'},
+    tile('Sales', rs(p.sales), p.open ? `${rs(p.sales / p.open)} a day` : '', 'tile--wide tile--hero'),
+    tile('Profit', rs(p.profit), p.sales ? Math.round(p.profit / p.sales * 100) + '% of sales' : ''),
+    tile('Costs', rs(p.spend + p.wages + p.fixed), `buying ${rs(p.spend)} · wages ${rs(p.wages)} · rent & bills ${rs(p.fixed)}`),
+    tile('Cash / UPI', `${rs(p.cash)} / ${rs(p.upi)}`, p.cash + p.upi ? `UPI ${Math.round(p.upi / (p.cash + p.upi) * 100)}%` : ''),
+    tile('Money vs items sold', (p.gap >= 0 ? '+' : '−') + rs(Math.abs(p.gap)), 'received minus counted items')));
+
+  if (curShop === 'both') {
+    const c = periodSummary(from, to, 'chaat'), t = periodSummary(from, to, 'tea');
+    view.append(h('div', {class: 'card'}, h('p', {class: 'eyebrow'}, `${shopName('chaat')} vs ${shopName('tea')}`),
+      h('table', {class: 't'}, h('tr', {}, h('th', {}), h('th', {class: 'r'}, shopName('chaat')), h('th', {class: 'r'}, shopName('tea'))),
+        [['Sales', 'sales'], ['Buying', 'spend'], ['Wages', 'wages'], ['Rent & bills', 'fixed'], ['Profit', 'profit']]
+          .map(([l, k]) => h('tr', {}, h('td', {}, l), h('td', {class: 'r'}, rs(c[k])), h('td', {class: 'r'}, rs(t[k])))))));
+  }
+
+  if (p.days.length > 1) view.append(h('div', {class: 'card'}, h('p', {class: 'eyebrow'}, 'Sales by day'),
+    columns(p.days.slice(-31).map(d => ({l: dateLabel(d.date), s: String(parseD(d.date).getDate()), v: d.sales, now: d.date === today()})))));
+
+  const its = itemTotals(from, to, curShop);
+  view.append(h('div', {class: 'card'}, h('p', {class: 'eyebrow'}, 'Items: best sellers first'),
+    its.length ? [bars(its.slice(0, 12).map(r => ({l: r.item.name, v: r.sales, c: r.item.shop})), rs),
+      h('div', {class: 'tablewrap'}, h('table', {class: 't'}, h('tr', {}, h('th', {}, 'Item'), h('th', {class: 'r'}, 'Sold'), h('th', {class: 'r'}, 'Sales'), h('th', {class: 'r'}, 'Profit')),
+        its.map(r => h('tr', {}, h('td', {}, r.item.name), h('td', {class: 'r'}, r.n), h('td', {class: 'r'}, rs(r.sales)), h('td', {class: 'r'}, r.profit == null ? '–' : rs(r.profit)))))),
+      its.some(r => r.profit == null) ? h('p', {class: 'small muted'}, 'Profit per item shows once a cost per plate/cup is set in Menu and prices.') : null]
+      : h('p', {class: 'muted'}, 'No item counts in this period.')));
+
+  // Weekday vs weekend averages.
+  const wd = p.days.filter(d => d.entered && ![0, 6].includes(parseD(d.date).getDay())), we = p.days.filter(d => d.entered && [0, 6].includes(parseD(d.date).getDay()));
+  const avg = a => a.length ? a.reduce((x, d) => x + d.sales, 0) / a.length : 0;
+  if (wd.length || we.length) view.append(h('div', {class: 'card'}, h('p', {class: 'eyebrow'}, 'Average day'), bars([{l: 'Weekday', v: avg(wd)}, {l: 'Weekend', v: avg(we)}], rs)));
+
+  // Spending by category.
+  const cats = {};
+  all('expense').filter(e => e.date >= from && e.date <= to && share(e.shop, curShop) > 0).forEach(e => { cats[e.cat] = (cats[e.cat] || 0) + (Number(e.amount) || 0) * share(e.shop, curShop); });
+  const cl = Object.keys(cats).map(k => ({l: catOf(k).i + ' ' + k, v: cats[k]})).sort((a, b) => b.v - a.v);
+  view.append(h('div', {class: 'card'}, h('p', {class: 'eyebrow'}, 'Money spent, by type'), cl.length ? bars(cl, rs) : h('p', {class: 'muted'}, 'No expenses in this period.')));
+
+  // This month vs last month.
+  const [lf, lt] = periodRange('last'), [mf, mt] = periodRange('month');
+  const m = periodSummary(mf, mt, curShop), l = periodSummary(lf, lt, curShop);
+  view.append(h('div', {class: 'card'}, h('p', {class: 'eyebrow'}, 'This month vs last month'),
+    h('table', {class: 't'}, h('tr', {}, h('th', {}), h('th', {class: 'r'}, 'This month'), h('th', {class: 'r'}, 'Last month')),
+      [['Sales', 'sales'], ['Profit', 'profit']].map(([lb, k]) => h('tr', {}, h('td', {}, lb), h('td', {class: 'r'}, rs(m[k]), ' ', change(m[k], l[k]) || ''), h('td', {class: 'r'}, rs(l[k])))))));
+
+  const pb = payback(), be = breakEven(curShop);
+  view.append(h('div', {class: 'card'}, h('p', {class: 'eyebrow'}, 'Getting your investment back'),
+    h('div', {class: 'tile__v'}, `${rs(pb.earned)} of ${rs(pb.invested)}`),
+    h('div', {class: 'bar__t', style: 'margin:8px 0'}, h('div', {class: 'bar__f', style: `width:${Math.max(1, Math.min(100, pb.earned / pb.invested * 100))}%`})),
+    h('p', {class: 'muted small'}, pb.monthsLeft != null ? `At the current profit (${rs(pb.perDay)} a day) you get it all back in about ${Math.ceil(pb.monthsLeft)} month${Math.ceil(pb.monthsLeft) === 1 ? '' : 's'}.` : 'Shows once the shops are making a profit.')));
+  view.append(h('div', {class: 'card'}, h('p', {class: 'eyebrow'}, 'Break-even'),
+    h('div', {class: 'tile__v'}, rs(be.perDay) + ' a day'),
+    h('p', {class: 'muted small'}, `Minimum daily sales${curShop === 'both' ? '' : ' for ' + shopName(curShop)} to cover rent, bills, wages and buying` + (be.basedOn ? `, from the last ${be.basedOn} days.` : '. Gets accurate after a few weeks of entries.'))));
+
+  if (can('setup')) view.append(h('div', {class: 'stack', style: 'margin-top:14px'},
+    h('button', {type: 'button', class: 'btn btn--soft btn--block', onclick: () => shareText(summaryText(from, to, label))}, 'Share summary on WhatsApp'),
+    h('button', {type: 'button', class: 'btn btn--soft btn--block', onclick: () => downloadFile(`shop-daily-${from}-to-${to}.csv`, toCsv(dailyRows(from, to)))}, 'Download Excel/CSV'),
+    h('button', {type: 'button', class: 'btn btn--soft btn--block', onclick: syncSheets}, 'Update Google Sheet')));
+}
+
+function summaryText(from, to, label) {
+  const lines = [`*${label}* (${dateLabel(from)} – ${dateLabel(to)})`];
+  ['both'].concat(SHOP_KEYS).forEach(s => {
+    const p = periodSummary(from, to, s);
+    lines.push(`${s === 'both' ? 'Total' : shopName(s)}: sales ${rs(p.sales)}, profit ${rs(p.profit)}`);
+  });
+  return lines.join('\n');
+}
+function dailyRows(from, to) {
+  const head = ['Date', 'Shop', 'Sales', 'Cash', 'UPI', 'Items value', 'Money vs items', 'Buying', 'Wages', 'Rent & bills', 'Profit'];
+  const rows = [head];
+  range(from, to).forEach(d => SHOP_KEYS.forEach(s => {
+    const x = daySummary(d, s);
+    if (!x.entered && !x.spend && !x.wages) return;
+    rows.push([d, shopName(s), x.sales, x.cash, x.upi, x.expected, x.gap, Math.round(x.spend), Math.round(x.wages), Math.round(x.fixed), Math.round(x.profit)]);
+  }));
+  return rows;
+}
+const toCsv = rows => rows.map(r => r.map(c => /[",\n]/.test(String(c)) ? `"${String(c).replace(/"/g, '""')}"` : c).join(',')).join('\n');
+async function syncSheets() {
+  const t = today(), from = addDays(t, -365);
+  const exp = [['Date', 'Category', 'Shop', 'Amount', 'Paid by', 'Note']].concat(all('expense').filter(e => e.date >= from).sort((a, b) => a.date < b.date ? -1 : 1).map(e => [e.date, e.cat, shopName(e.shop), e.amount, e.pay, e.note || '']));
+  const sold = [['Date', 'Shop', 'Item', 'Count', 'Price']];
+  all('sale').filter(r => r.date >= from).sort((a, b) => a.date < b.date ? -1 : 1).forEach(r => Object.keys(r.counts || {}).forEach(id => { const it = get(id); sold.push([r.date, shopName(r.shop), it ? it.name : id, r.counts[id], (r.prices || {})[id] != null ? r.prices[id] : (it ? it.price : '')]); }));
+  try {
+    toast('Updating Google Sheet…');
+    const d = await api('sheets', {tabs: [{name: 'Daily summary', rows: dailyRows(from, t)}, {name: 'Items sold', rows: sold}, {name: 'Expenses', rows: exp}]});
+    toast('Google Sheet updated', 'Open', () => window.open(d.url, '_blank'));
+  } catch (e) { toast('Could not update: ' + e.message); }
+}
+
+/* More: links to the other screens, plus setup (menu, running costs, people, history, server link). */
+function screenMore(view) {
+  const u = S.session.user;
+  const link = (ico, title, sub, fn, show) => show === false ? null : h('button', {type: 'button', class: 'li', onclick: fn},
+    h('span', {class: 'li__ico'}, ico), h('span', {class: 'li__main'}, h('div', {class: 'li__t'}, title), sub ? h('div', {class: 'li__s'}, sub) : null), h('span', {class: 'muted'}, '›'));
+  const owner = u.role === 'owner', setup = can('setup');
+  view.append(h('p', {class: 'muted', style: 'margin-top:8px'}, `Signed in as ${u.name} (${u.role})`));
+  view.append(h('div', {class: 'list'},
+    link('👷', 'Workers', 'Attendance, overtime, salary and advances', () => go('workers')),
+    link('💵', 'Cash tally', 'Count the cash box at closing', () => go('cash')),
+    link('📊', 'Reports', 'Profit, items, chaat vs tea, payback', () => go('reports'), setup),
+    link('🍽️', 'Menu and prices', 'Items, prices, cost per plate/cup', menuScreen, setup),
+    link('🧾', 'Rent, bills and estimates', 'Monthly running costs, investment, prep estimates', costsScreen, setup),
+    link('👥', 'People and PINs', 'Who can sign in, and what they can do', peopleScreen, owner),
+    link('🕓', 'Change history', 'Who changed what, and when', historyScreen, owner)));
+  view.append(h('h3', {class: 'h3'}, 'This phone'));
+  const pend = pendingCount();
+  view.append(h('div', {class: 'list'},
+    link('🔄', 'Sync now', (S.lastSync ? `Last synced ${new Date(S.lastSync).toLocaleString('en-IN', {hour: 'numeric', minute: '2-digit', day: 'numeric', month: 'short'})}` : 'Not synced yet') + (pend ? ` · ${pend} change${pend === 1 ? '' : 's'} waiting` : ''),
+      () => sync().then(() => { toast('Synced'); go('more'); }, e => toast('Could not sync: ' + e.message))),
+    link('🌗', 'Theme', LS.get('theme', 'dark') === 'dark' ? 'Dark' : 'Light', () => { const t = LS.get('theme', 'dark') === 'dark' ? 'light' : 'dark'; LS.set('theme', t); applyTheme(); go('more'); }),
+    link('🔒', 'Lock now', 'Asks for your PIN to open again', () => lock()),
+    link('🔗', 'Server link', S.api ? S.api.slice(0, 48) + '…' : 'Not set', serverLinkSheet, owner || !S.api),
+    link('🚪', 'Sign out', 'Use a different account on this phone', () => confirmSheet('Sign out?', pend ? `${pend} change(s) have not reached the server yet. Sync first if you can.` : 'You can sign in again any time.', 'Sign out', () => { signOut(); go('home'); }))));
+}
+
+function serverLinkSheet() {
+  let v = S.api;
+  sheet('Server link', close => h('div', {},
+    h('p', {class: 'muted small'}, 'The Google Apps Script web app link that ends in /exec.'),
+    field('Link', textIn(v, x => { v = x.trim(); }, {placeholder: 'https://script.google.com/macros/s/…/exec'})),
+    h('button', {type: 'button', class: 'btn btn--primary btn--block', onclick: () => { S.api = v; LS.set('api', v); close(); toast('Saved'); }}, 'Save')));
+}
+
+function menuScreen() {
+  sheet('Menu and prices', close => {
+    const body = h('div', {});
+    body.append(h('p', {class: 'muted small'}, 'Cost per plate/cup is optional. With it, reports show profit per item. Price changes apply from today; past days keep their old price.'));
+    SHOP_KEYS.forEach(s => {
+      body.append(h('div', {class: 'row row--between'}, h('h3', {class: 'h3'}, shopName(s)), h('button', {type: 'button', class: 'link', onclick: () => { close(); itemForm({shop: s}); }}, '+ Add item')));
+      body.append(h('div', {class: 'list'}, all('item').filter(i => i.shop === s).sort((a, b) => (a.order || 0) - (b.order || 0)).map(it => h('button', {type: 'button', class: 'li', onclick: () => { close(); itemForm(it); }},
+        h('span', {class: 'li__ico'}, it.icon || '•'),
+        h('span', {class: 'li__main'}, h('div', {class: 'li__t'}, it.name, it.active === false ? h('span', {class: 'pill', style: 'margin-left:6px'}, 'hidden') : null),
+          h('div', {class: 'li__s'}, it.cost ? `costs ${rs(it.cost)} · profit ${rs(it.price - it.cost)}` : 'cost not set')),
+        h('span', {class: 'li__v'}, it.price ? rs(it.price) : h('span', {class: 'down'}, 'set price'))))));
+    });
+    return body;
+  });
+}
+function itemForm(existing) {
+  const it = Object.assign({kind: 'item', name: '', price: '', cost: '', icon: '', active: true, order: 99}, existing);
+  sheet(it.id ? 'Edit item' : 'New item', close => h('div', {},
+    field('Name', textIn(it.name, v => { it.name = v; })),
+    h('div', {class: 'grid2'}, field('Selling price', moneyIn(it.price, v => { it.price = v || 0; })), field('Cost per plate/cup', moneyIn(it.cost, v => { it.cost = v || 0; }))),
+    field('Picture (one emoji)', textIn(it.icon, v => { it.icon = v.trim().slice(0, 4); }, {placeholder: '🍵'})),
+    field('Type', seg([['made', 'Made here'], ['resale', 'Bought and resold']], it.resale ? 'resale' : 'made', v => { it.resale = v === 'resale'; })),
+    field('Show on sales screen', seg([['y', 'Yes'], ['n', 'Hide']], it.active === false ? 'n' : 'y', v => { it.active = v === 'y'; })),
+    h('button', {type: 'button', class: 'btn btn--primary btn--big btn--block', onclick: () => { if (!it.name.trim()) { toast('Enter a name'); return; } save(it); close(); toast('Saved'); menuScreen(); }}, 'Save')));
+}
+
+function costsScreen() {
+  const st = JSON.parse(JSON.stringify(settings()));
+  sheet('Rent, bills and estimates', close => {
+    const fixedList = h('div', {class: 'list'});
+    const drawFixed = () => {
+      fixedList.innerHTML = '';
+      st.fixed.forEach((f, i) => fixedList.append(h('div', {class: 'card', style: 'margin:0'},
+        field('Name', textIn(f.name, v => { f.name = v; })),
+        h('div', {class: 'grid2'}, field('Per month', moneyIn(f.amount, v => { f.amount = v || 0; })),
+          field('Shop', (() => { const s = h('select', {class: 'in'}, [['shared', 'Shared'], ['chaat', shopName('chaat')], ['tea', shopName('tea')]].map(([k, l]) => h('option', {value: k, selected: f.shop === k}, l))); s.onchange = () => { f.shop = s.value; }; return s; })())),
+        h('button', {type: 'button', class: 'link', onclick: () => { st.fixed.splice(i, 1); drawFixed(); }}, 'Remove'))));
+    };
+    drawFixed();
+    return h('div', {},
+      SHOP_KEYS.map(s => h('div', {class: 'card'}, h('p', {class: 'eyebrow'}, s === 'chaat' ? 'Chaat shop' : 'Tea shop'),
+        field('Name in the app', textIn(st.shops[s].name, v => { st.shops[s].name = v; })),
+        h('div', {class: 'grid2'}, field('Rent per month', moneyIn(st.shops[s].rent, v => { st.shops[s].rent = v || 0; })),
+          field('Money invested', moneyIn(st.shops[s].investment, v => { st.shops[s].investment = v || 0; }))))),
+      h('h3', {class: 'h3'}, 'Other monthly bills'),
+      h('p', {class: 'muted small'}, 'Spread over each day so daily profit is real. When you pay these, add them as Rent / Electricity / Water expenses; they will not be counted twice.'),
+      fixedList,
+      h('button', {type: 'button', class: 'link', onclick: () => { st.fixed.push({name: '', amount: 0, shop: 'shared'}); drawFixed(); }}, '+ Add a monthly bill'),
+      h('h3', {class: 'h3'}, 'Estimates for predictions'),
+      h('div', {class: 'grid2'},
+        field('Milk per cup (ml)', numIn(st.milkMlPerCup, v => { st.milkMlPerCup = v; })),
+        field('Tea powder per cup (g)', numIn(st.teaGPerCup, v => { st.teaGPerCup = v; })),
+        field('Puris per pani puri plate', numIn(st.purisPerPlate, v => { st.purisPerPlate = v; })),
+        field('Puris per packet', numIn(st.purisPerPacket, v => { st.purisPerPacket = v; })),
+        field('Overtime per hour', moneyIn(st.overtimeRate, v => { st.overtimeRate = v || 0; }))),
+      h('button', {type: 'button', class: 'btn btn--primary btn--big btn--block', style: 'margin-top:12px', onclick: () => { st.fixed = st.fixed.filter(f => f.name.trim()); save(st); close(); toast('Saved'); go('more'); }}, 'Save'));
+  });
+}
+
+function peopleScreen() {
+  sheet('People and PINs', close => {
+    const body = h('div', {}, h('p', {class: 'muted'}, 'Loading…'));
+    const draw = users => {
+      body.innerHTML = '';
+      body.append(h('p', {class: 'muted small'}, 'Owner and family see everything. A cashier can enter sales, expenses, stock counts, attendance and the cash tally, but not profit or salaries.'),
+        h('div', {class: 'list'}, users.map(u => h('button', {type: 'button', class: 'li', onclick: () => personForm(u, draw)},
+          h('span', {class: 'li__main'}, h('div', {class: 'li__t'}, u.name, u.active === false ? ' (blocked)' : ''), h('div', {class: 'li__s'}, `${u.username} · ${u.role}`)), h('span', {class: 'muted'}, '›')))),
+        h('button', {type: 'button', class: 'btn btn--primary btn--block', style: 'margin-top:12px', onclick: () => personForm(null, draw)}, '+ Add a person'));
+    };
+    api('users', {action: 'list'}).then(d => draw(d.users), e => { body.innerHTML = ''; body.append(h('p', {class: 'down'}, 'Needs internet: ' + e.message)); });
+    return body;
+  });
+}
+function personForm(u, redraw) {
+  const p = Object.assign({username: '', name: '', role: 'cashier', pin: '', active: true}, u || {}, {pin: ''});
+  const back = () => peopleScreen();
+  sheet(u ? 'Edit person' : 'Add person', close => h('div', {},
+    field('Name', textIn(p.name, v => { p.name = v; })),
+    field('Username (for signing in)', textIn(p.username, v => { p.username = v.trim().toLowerCase(); }, {disabled: !!u, autocapitalize: 'none'})),
+    field('Can do', seg([['owner', 'Owner'], ['family', 'Family'], ['cashier', 'Cashier']], p.role, v => { p.role = v; })),
+    field(u ? 'New 4-digit PIN (leave blank to keep)' : '4-digit PIN', textIn('', v => { p.pin = v.replace(/\D/g, '').slice(0, 4); }, {inputmode: 'numeric', maxlength: 4})),
+    u ? field('Allowed to sign in', seg([['y', 'Yes'], ['n', 'Blocked']], p.active === false ? 'n' : 'y', v => { p.active = v === 'y'; })) : null,
+    h('button', {type: 'button', class: 'btn btn--primary btn--big btn--block', onclick: () => {
+      api('users', {action: 'save', username: p.username, name: p.name, role: p.role, pin: p.pin || undefined, active: p.active})
+        .then(() => { close(); toast('Saved'); back(); }, e => toast(e.message));
+    }}, 'Save'),
+    h('button', {type: 'button', class: 'btn btn--ghost btn--block', style: 'margin-top:8px', onclick: () => { close(); back(); }}, 'Back')));
+}
+
+function historyScreen() {
+  sheet('Change history', close => {
+    const body = h('div', {}, h('p', {class: 'muted'}, 'Loading…'));
+    api('history', {}).then(d => {
+      body.innerHTML = '';
+      if (!d.rows.length) { body.append(h('p', {class: 'muted'}, 'No changes yet.')); return; }
+      body.append(h('div', {class: 'list'}, d.rows.slice(0, 200).map(r => {
+        let o = {}; try { o = JSON.parse(r.json); } catch (e) { /* ignore */ }
+        const what = describe(o);
+        return h('div', {class: 'li'}, h('span', {class: 'li__main'}, h('div', {class: 'li__t'}, `${r.user} ${r.action}d ${what}`), h('div', {class: 'li__s'}, r.time)));
+      })));
+    }, e => { body.innerHTML = ''; body.append(h('p', {class: 'down'}, 'Needs internet: ' + e.message)); });
+    return body;
+  });
+}
+function describe(o) {
+  switch (o.kind) {
+    case 'sale': return `${shopName(o.shop)} sales for ${o.date} (cash ${rs(o.cash)}, UPI ${rs(o.upi)})`;
+    case 'expense': return `expense ${o.cat} ${rs(o.amount)} on ${o.date}`;
+    case 'cash': return `cash tally ${shopName(o.shop)} ${o.date}`;
+    case 'count': return `stock count ${o.date}`;
+    case 'att': return `attendance ${o.date}`;
+    case 'wpay': { const w = get(o.worker); return `${o.type} ${rs(o.amount)} to ${w ? w.name : 'a worker'}`; }
+    case 'item': return `item ${o.name} (${rs(o.price)})`;
+    case 'worker': return `worker ${o.name}`;
+    default: return o.kind || 'a record';
+  }
+}
+
+/* App shell: sign-in, PIN lock, tabs, routing, install button, offline service worker. */
+const TABS = [['home', 'Home'], ['sales', 'Sales'], ['spend', 'Expenses'], ['stock', 'Stock'], ['more', 'More']];
+const TITLES = {home: 'Today', sales: 'Sales entry', spend: 'Expenses', stock: 'Stock', more: 'More', workers: 'Workers', cash: 'Cash tally', reports: 'Reports'};
+const SCREENS = {home: screenHome, sales: screenSales, spend: screenSpend, stock: screenStock, more: screenMore, workers: screenWorkers, cash: screenCash, reports: screenReports};
+let route = 'home';
+let installEvt = null;
+
+function applyTheme() { document.documentElement.setAttribute('data-theme', LS.get('theme', 'dark')); }
+function go(r) { route = SCREENS[r] ? r : 'home'; render(); window.scrollTo(0, 0); }
+
+function render() {
+  const app = $('app');
+  app.innerHTML = '';
+  if (!S.session) { app.append(authScreen()); return; }
+  if (isLocked()) { app.append(lockScreen()); return; }
+  const tabOf = ['workers', 'cash', 'reports'].includes(route) ? 'more' : route;
+  const syncBtn = h('button', {type: 'button', class: 'sync', id: 'syncBtn', onclick: () => sync().then(() => toast('Synced'), e => toast('Not synced: ' + e.message))}, h('i'), h('span'));
+  app.append(
+    h('header', {class: 'top'}, h('div', {class: 'top__in'},
+      ['workers', 'cash', 'reports'].includes(route) ? h('button', {type: 'button', class: 'iconbtn', 'aria-label': 'Back', onclick: () => go('more')}, '‹') : null,
+      h('h1', {}, TITLES[route]), syncBtn)),
+    (() => { const v = h('main', {class: 'view', id: 'view'}); try { SCREENS[route](v); } catch (e) { console.error(e); v.append(h('div', {class: 'alert alert--bad'}, 'Something went wrong on this screen: ' + e.message)); } return v; })(),
+    h('nav', {class: 'tabs', 'aria-label': 'Main'}, h('div', {class: 'tabs__in'}, TABS.map(([k, l]) => h('button', {type: 'button', class: 'tab', 'aria-current': tabOf === k ? 'page' : null, onclick: () => go(k)}, icon(k === 'spend' ? 'spend' : k), l)))));
+  if (route === 'home') installBanner();
+  drawSync();
+}
+function drawSync() {
+  const b = $('syncBtn'); if (!b) return;
+  const n = pendingCount();
+  const s = S.syncing ? 'busy' : !S.online ? 'off' : n ? 'busy' : 'ok';
+  b.dataset.s = s;
+  b.lastChild.textContent = S.syncing ? 'Syncing…' : !S.online ? (n ? `Offline · ${n} waiting` : 'Offline') : n ? `${n} to sync` : 'Synced';
+}
+S.listeners.add(() => { if (!S.session || isLocked()) { if (!$('pinpad')) render(); return; } drawSync(); });
+
+// ---------- sign in ----------
+function pinPad(onDone, label) {
+  let pin = '';
+  const dots = h('div', {class: 'dots', 'aria-label': 'PIN'});
+  const draw = () => { dots.innerHTML = ''; for (let i = 0; i < 4; i++) dots.append(h('i', {class: i < pin.length ? 'on' : null})); };
+  const press = k => {
+    if (k === '⌫') pin = pin.slice(0, -1); else if (pin.length < 4) pin += k;
+    draw();
+    if (pin.length === 4) { const p = pin; pin = ''; setTimeout(() => { draw(); onDone(p); }, 120); }
+  };
+  draw();
+  const pad = h('div', {class: 'pad', id: 'pinpad'}, ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '⌫'].map(k => k ? h('button', {type: 'button', 'aria-label': k === '⌫' ? 'Delete' : k, onclick: () => press(k)}, k) : h('span')));
+  return h('div', {}, label ? h('p', {class: 'muted'}, label) : null, dots, pad);
+}
+function authScreen() {
+  const wrap = h('div', {class: 'pin'});
+  const msg = h('p', {class: 'down', role: 'alert'});
+  let mode = 'login', user = LS.get('lastUser', '');
+  const draw = () => {
+    wrap.innerHTML = '';
+    wrap.append(h('p', {class: 'eyebrow'}, 'Chaat & Tea'), h('div', {class: 'brand'}, 'Shop Manager'));
+    if (!S.api || S.api.indexOf('http') !== 0) {
+      let v = '';
+      wrap.append(h('p', {class: 'muted'}, 'Paste the server link (ends in /exec).'), textIn('', x => { v = x.trim(); }),
+        h('button', {type: 'button', class: 'btn btn--primary btn--block', style: 'margin-top:10px', onclick: () => { S.api = v; LS.set('api', v); draw(); }}, 'Continue'));
+      return;
+    }
+    if (mode === 'login') {
+      wrap.append(field('Username', textIn(user, v => { user = v.trim().toLowerCase(); }, {autocapitalize: 'none', autocomplete: 'username'})), msg,
+        pinPad(pin => {
+          if (!user) { msg.textContent = 'Enter your username first.'; return; }
+          msg.textContent = 'Signing in…';
+          signIn(user, pin).then(() => go('home'), e => { msg.textContent = e.message; });
+        }, 'Enter your 4-digit PIN'),
+        h('button', {type: 'button', class: 'link', style: 'margin-top:14px', onclick: () => { mode = 'owner'; draw(); }}, 'First time? Create the owner account'));
+    } else {
+      const f = {code: '', name: '', user: '', pin: ''};
+      wrap.append(h('p', {class: 'muted'}, 'One time only. Use the setup code from the server file.'),
+        field('Setup code', textIn('', v => { f.code = v; }, {autocapitalize: 'characters'})),
+        field('Your name', textIn('', v => { f.name = v; })),
+        field('Username', textIn('', v => { f.user = v.trim().toLowerCase(); }, {autocapitalize: 'none'})),
+        field('Choose a 4-digit PIN', textIn('', v => { f.pin = v.replace(/\D/g, '').slice(0, 4); }, {inputmode: 'numeric', maxlength: 4})), msg,
+        h('button', {type: 'button', class: 'btn btn--primary btn--big btn--block', onclick: () => {
+          msg.textContent = 'Creating…';
+          createOwner(f.code, f.name, f.user, f.pin).then(() => go('home'), e => { msg.textContent = e.message; });
+        }}, 'Create owner account'),
+        h('button', {type: 'button', class: 'link', onclick: () => { mode = 'login'; draw(); }}, 'Back to sign in'));
+    }
+  };
+  draw();
+  return h('main', {class: 'view'}, wrap);
+}
+function lockScreen() {
+  const msg = h('p', {class: 'down', role: 'alert'});
+  return h('main', {class: 'view'}, h('div', {class: 'pin'}, h('div', {class: 'brand'}, 'Shop Manager'),
+    h('p', {class: 'muted'}, `Hi ${S.session.user.name}`), msg,
+    pinPad(pin => tryUnlock(pin).then(ok => { if (ok) render(); else msg.textContent = 'Wrong PIN. Try again.'; })),
+    h('button', {type: 'button', class: 'link', style: 'margin-top:14px', onclick: () => { signOut(); render(); }}, 'Forgot PIN? Sign in again')));
+}
+
+// ---------- install (questionnaire M5: "a link to download from") ----------
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; if (route === 'home' && S.session) render(); });
+function installBanner() {
+  const standalone = window.matchMedia && matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+  if (standalone || LS.get('installHidden', false)) return;
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  if (!installEvt && !ios) return;
+  const v = $('view');
+  v.prepend(h('div', {class: 'alert alert--good'}, h('span', {}, '📲'),
+    h('div', {class: 'grow'}, installEvt ? 'Install Shop Manager on this phone for one-tap opening, even offline.' : 'To install on iPhone: tap Share, then "Add to Home Screen".',
+      installEvt ? h('div', {}, h('button', {type: 'button', class: 'link', onclick: () => { installEvt.prompt(); installEvt.userChoice.finally(() => { installEvt = null; render(); }); }}, 'Install app')) : null),
+    h('button', {type: 'button', class: 'link', 'aria-label': 'Hide', onclick: () => { LS.set('installHidden', true); render(); }}, '×')));
+}
+
+// ---------- start ----------
+applyTheme();
+loadStore().then(() => {
+  render();
+  if (S.session) sync().catch(() => {});
+  setInterval(() => { if (S.session && !document.hidden) sync().catch(() => {}); }, 5 * 60 * 1000);
+});
+if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+window.__app = {S, go, save, all, get, daySummary, periodSummary, forecast, prepPlan, stockLevel, workerBalance, expectedCash, payback, breakEven};
+
+})();
+</script>
+</body>
+</html>

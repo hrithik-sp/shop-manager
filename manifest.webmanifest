@@ -1,0 +1,25 @@
+{
+  "name": "Shop Manager",
+  "short_name": "Shop Manager",
+  "description": "Chaat and tea shop sales, expenses, stock and workers",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#101412",
+  "theme_color": "#101412",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
