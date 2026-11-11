@@ -1448,8 +1448,10 @@ function peopleScreen() {
     const draw = users => {
       body.innerHTML = '';
       body.append(h('p', {class: 'muted small'}, 'Owner and family see everything. A cashier can enter sales, expenses, stock counts, attendance and the cash tally, but not profit or salaries.'),
-        h('div', {class: 'list'}, users.map(u => h('button', {type: 'button', class: 'li', onclick: () => personForm(u, draw)},
-          h('span', {class: 'li__main'}, h('div', {class: 'li__t'}, u.name, u.active === false ? ' (blocked)' : ''), h('div', {class: 'li__s'}, `${u.username} · ${u.role}`)), h('span', {class: 'muted'}, '›')))),
+        h('div', {class: 'list'}, users.map(u => u.locked
+          ? h('div', {class: 'li'}, h('span', {class: 'li__main'}, h('div', {class: 'li__t'}, u.name), h('div', {class: 'li__s'}, `${u.username} · ${u.role}`)))
+          : h('button', {type: 'button', class: 'li', onclick: () => personForm(u, draw)},
+            h('span', {class: 'li__main'}, h('div', {class: 'li__t'}, u.name, u.active === false ? ' (blocked)' : ''), h('div', {class: 'li__s'}, `${u.username} · ${u.role}`)), h('span', {class: 'muted'}, '›')))),
         h('button', {type: 'button', class: 'btn btn--primary btn--block', style: 'margin-top:12px', onclick: () => personForm(null, draw)}, '+ Add a person'));
     };
     api('users', {action: 'list'}).then(d => draw(d.users), e => { body.innerHTML = ''; body.append(h('p', {class: 'down'}, 'Needs internet: ' + e.message)); });
@@ -1459,12 +1461,15 @@ function peopleScreen() {
 function personForm(u, redraw) {
   const p = Object.assign({username: '', name: '', role: 'cashier', pin: '', active: true}, u || {}, {pin: ''});
   const back = () => peopleScreen();
+  const self = u && u.username === S.session.user.username;
+  const roles = [['family', 'Family'], ['cashier', 'Cashier']];
+  if (S.session.user.top) roles.unshift(['owner', 'Owner']);
   sheet(u ? 'Edit person' : 'Add person', close => h('div', {},
     field('Name', textIn(p.name, v => { p.name = v; })),
     field('Username (for signing in)', textIn(p.username, v => { p.username = v.trim().toLowerCase(); }, {disabled: !!u, autocapitalize: 'none'})),
-    field('Can do', seg([['owner', 'Owner'], ['family', 'Family'], ['cashier', 'Cashier']], p.role, v => { p.role = v; })),
+    self ? null : field('Can do', seg(roles, p.role, v => { p.role = v; })),
     field(u ? 'New 4-digit PIN (leave blank to keep)' : '4-digit PIN', textIn('', v => { p.pin = v.replace(/\D/g, '').slice(0, 4); }, {inputmode: 'numeric', maxlength: 4})),
-    u ? field('Allowed to sign in', seg([['y', 'Yes'], ['n', 'Blocked']], p.active === false ? 'n' : 'y', v => { p.active = v === 'y'; })) : null,
+    u && !self ? field('Allowed to sign in', seg([['y', 'Yes'], ['n', 'Blocked']], p.active === false ? 'n' : 'y', v => { p.active = v === 'y'; })) : null,
     h('button', {type: 'button', class: 'btn btn--primary btn--big btn--block', onclick: () => {
       api('users', {action: 'save', username: p.username, name: p.name, role: p.role, pin: p.pin || undefined, active: p.active})
         .then(() => { close(); toast('Saved'); back(); }, e => toast(e.message));
@@ -1570,7 +1575,7 @@ function authScreen() {
           msg.textContent = 'Signing in…';
           signIn(user, pin).then(() => go('home'), e => { msg.textContent = e.message; });
         }, 'Enter your 4-digit PIN'),
-        h('button', {type: 'button', class: 'link', style: 'margin-top:14px', onclick: () => { mode = 'owner'; draw(); }}, 'First time? Create the owner account'));
+        h('button', {type: 'button', class: 'link', style: 'margin-top:14px', onclick: () => { mode = 'owner'; draw(); }}, 'First time? Set up the app'));
     } else {
       const f = {code: '', name: '', user: '', pin: ''};
       wrap.append(h('p', {class: 'muted'}, 'One time only. Use the setup code from the server file.'),
