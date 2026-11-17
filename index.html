@@ -207,6 +207,38 @@ table.t{border-collapse:collapse;width:100%;font-size:14.5px}
 .alert--good{background:var(--good-soft)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 .demo-strip{background:var(--accent-soft);color:var(--ink);font-size:14px;line-height:1.35;text-align:center;padding:8px 16px;border-bottom:1px solid var(--line)}
+/* Close the day: big date and step bar */
+.bigdate{text-align:center;line-height:1.1}
+.bigdate div{font:700 26px/1.15 var(--display)}
+.steps{display:flex;gap:4px;overflow-x:auto;margin:10px 0 12px;scrollbar-width:none}
+.steps::-webkit-scrollbar{display:none}
+.steps__s{flex:1 0 auto;display:grid;justify-items:center;gap:4px;background:none;border:0;color:var(--muted);font-size:12px;font-weight:600;padding:4px 2px;min-width:54px}
+.steps__s i{display:block;width:100%;height:5px;border-radius:3px;background:var(--surface-3)}
+.steps__s.done i{background:var(--good)}
+.steps__s.on i{background:var(--accent)}
+.steps__s.on{color:var(--ink)}
+/* Item photos */
+.item__img{width:40px;height:40px;border-radius:10px;object-fit:cover;flex:none}
+.item__img--big{width:64px;height:64px}
+.li__img{width:32px;height:32px;border-radius:8px;object-fit:cover;display:block}
+.leak{padding:8px 0;border-top:1px solid var(--line)}
+.leak:first-of-type{border-top:0}
+.leak p{margin:4px 0 0}
+/* Chaat counter tally: pictures only, full screen */
+.tally{position:fixed;inset:0;display:flex;flex-direction:column;background:var(--bg);padding:env(safe-area-inset-top,0px) 10px env(safe-area-inset-bottom,0px)}
+.tally__grid{flex:1;display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));grid-auto-rows:minmax(118px,1fr);gap:10px;overflow:auto;padding:54px 0 10px}
+.tally__t{position:relative;border:0;border-radius:20px;background:hsl(var(--hue) 32% 22%);display:grid;place-items:center;padding:8px;touch-action:manipulation;-webkit-user-select:none;user-select:none}
+:root[data-theme="light"] .tally__t{background:hsl(var(--hue) 60% 88%)}
+.tally__t .item__ico{font-size:64px}
+.tally__img{width:100%;height:100%;max-height:160px;object-fit:cover;border-radius:14px}
+.tally__n{position:absolute;top:8px;right:8px;min-width:40px;padding:4px 8px;border-radius:99px;background:var(--accent);color:var(--accent-ink);font:700 22px/1.2 var(--display);text-align:center}
+.tally__t--hit{animation:tallyhit .25s}
+@keyframes tallyhit{from{transform:scale(.92);filter:brightness(1.5)}to{transform:none}}
+.tally__bar{display:flex;align-items:center;gap:14px;padding:10px 0}
+.tally__undo{flex:1;height:84px;border:0;border-radius:22px;background:var(--surface-3);color:var(--ink);font:700 44px/1 var(--display)}
+.tally__total{min-width:70px;text-align:center;font:700 30px/1 var(--display);color:var(--muted)}
+.tally__exit{position:absolute;top:calc(env(safe-area-inset-top,0px) + 8px);right:10px;width:42px;height:42px;border-radius:50%;border:0;background:var(--surface);color:var(--muted);font-size:18px;z-index:2;touch-action:none}
+.tally__exit.holding{background:var(--bad-soft);color:var(--bad);transition:background 1.5s linear}
 
 </style>
 </head>
@@ -218,18 +250,18 @@ table.t{border-collapse:collapse;width:100%;font-size:14.5px}
 <script>
 (function () {
 'use strict';
-/* Starting data from Prashanth's questionnaire (code MMVQ-WG4A + follow-ups, Nov 2026).
-   Everything here can be changed in Settings; prices left as 0 still need setting. */
+/* Starting data from Prashanth's questionnaire (code MMVQ-WG4A), his follow-ups and the 17 Nov answers.
+   Everything here can be changed in the app; prices left as 0 still need setting. */
 const DEMO = false; // the build sets this to true for the reviewers' demo link
 const SEED = {
   settings() {
     return {
-      id: 'settings', kind: 'settings',
+      id: 'settings', kind: 'settings', schema: 1,
       shops: {
         chaat: {name: 'Chaat', open: '14:00', close: '22:00', rent: 40000, deposit: 100000, investment: 150000},
         tea: {name: 'Tea', open: '04:00', close: '23:30', rent: 48000, deposit: 100000, investment: 200000}
       },
-      // Monthly running costs other than rent, spread across each day (shared = split 50/50).
+      // Monthly running costs other than rent, spread across each day (shared = split between open shops).
       fixed: [
         {name: 'Electricity (BESCOM)', amount: 3000, shop: 'shared'},
         {name: 'Water tanker / bill', amount: 6000, shop: 'shared'},
@@ -237,12 +269,7 @@ const SEED = {
       ],
       overtimeRate: 50,
       floatChaat: 0, floatTea: 0,
-      // Estimates for prep and shopping predictions. Change them as you learn.
-      milkMlPerCup: 54,        // 38 L for about 700 cups a day
-      teaGPerCup: 2.4,         // about 12 kg a week for about 700 cups a day
-      purisPerPlate: 6,
-      purisPerPacket: 100,
-      summaryTime: '23:30', reminderTime: '23:00'
+      milkMlPerCup: 54, teaGPerCup: 2.4, purisPerPlate: 6, purisPerPacket: 100
     };
   },
   items() {
@@ -271,15 +298,92 @@ const SEED = {
       s('Water bottles', 'pcs', 'both', 12, 0), s('Cool drinks', 'pcs', 'both', 12, 0), s('Paper plates', 'pcs', 'chaat', 50, 0)
     ].map((r, i) => Object.assign(r, {id: 'stock:' + i, order: i}));
   },
-  records() { return [this.settings()].concat(this.items(), this.stock()); }
+  /** First-time records: the original seed brought up to the current layout. */
+  records() {
+    const base = [this.settings()].concat(this.items(), this.stock());
+    const changed = upgrade(base);
+    const byId = new Map(base.map(r => [r.id, r]));
+    changed.forEach(r => byId.set(r.id, r));
+    return Array.from(byId.values());
+  }
 };
 
-// Expense categories. fixed = already counted in daily running costs; owner = money taken out, not a cost.
+/** Layout version 2 (review of 17–18 Nov). Works on any list of records and returns only the
+    records to create or change, so the same code seeds a new install and updates an existing one. */
+function upgrade(list) {
+  const st = list.find(r => r.id === 'settings' && !r.deleted);
+  if (!st || (st.schema || 1) >= 2) return [];
+  const out = [];
+  const s = JSON.parse(JSON.stringify(st));
+  const shops = s.shops || (s.shops = {});
+  shops.chaat = Object.assign({opened: '2026-10-15', salesMode: 'items', target: ''}, shops.chaat);
+  shops.tea = Object.assign({opened: '2026-11-10', salesMode: 'money', target: ''}, shops.tea);
+  Object.assign(s, {schema: 2, dayStartsAt: s.dayStartsAt || '04:00', purisPerPlate: 8, purisPerBucket: '', cupsPerLitre: '', avgCupPrice: 15, bajjiOn: false});
+  ['purisPerPacket', 'reminderTime', 'summaryTime'].forEach(k => delete s[k]);
+  out.push(s);
+
+  // Not started yet (0a #9), and tea parcel sizes vary (0a #7).
+  const HIDE = ['Vada pav', 'Plain samosa/kachori', 'Biscuit packet', 'Bun', 'Bajji (4 pcs)', 'Tea/coffee parcel'];
+  // One distinct picture per item (P2): no seafood for bajji, no repeats within a shop.
+  const ICON = {'Pani puri': '🥣', 'Masala puri': '🍲', 'Sev puri': '🍘', 'Dahi puri': '🍦', 'Bhel puri': '🥗', 'Nippattu masala': '🥠',
+    'Samosa chaat': '🥟', 'Kachori chaat': '🥯', 'Churumuri': '🌶️', 'Papdi chaat': '🥙', 'Bajji (4 pcs)': '🧅', 'Vada pav': '🥪',
+    'Plain samosa/kachori': '🔺', 'Water bottle / cool drink': '🧃', 'Parcel charge': '🛍️', 'Regular tea': '🍵', 'Ginger tea': '🌿',
+    'Lemon tea': '🍋', 'Black tea': '🫖', 'Instant coffee': '☕', 'Black coffee': '🥃', 'Boost/Horlicks': '🍫', 'Hot milk': '🥛',
+    'Tea/coffee parcel': '📦', 'Loose biscuit': '🍪', 'Rusk': '🍞', 'Cake slice': '🍰', 'Biscuit packet': '🧇', 'Bun': '🥐',
+    'Cigarettes': '🚬', 'Water bottle': '💧', 'Cool drink': '🥤'};
+  list.filter(r => r.kind === 'item' && !r.deleted).forEach(it => {
+    const n = Object.assign({}, it);
+    if (HIDE.includes(it.name)) n.active = false;
+    if (ICON[it.name] && !it.photo) n.icon = ICON[it.name];
+    if (it.name === 'Cigarettes' && it.shop === 'tea') n.name = 'Cigarettes (all brands)';
+    if (JSON.stringify(n) !== JSON.stringify(it)) out.push(n);
+  });
+
+  // Stock: puris by the bucket, cigarettes by ₹ value until brands are known, pack sizes, and the items counted every night (G3).
+  const STOCK = {
+    'Milk': {key: true},
+    'Tea powder': {key: true, pack: 1},
+    'Coffee powder': {pack: 1},
+    'Sugar': {pack: 1},
+    'Cigarettes': {name: 'Cigarettes (₹ value)', unit: '₹', low: 2000, cost: 1, key: true},
+    'Oil': {key: true, pack: 1},
+    'Pani puri puris': {name: 'Puris', unit: 'bucket', low: 1, cost: '', key: true, pack: 1},
+    'Gas cylinders (full)': {key: true, pack: 1},
+    'Water bottles': {pack: 12}, 'Cool drinks': {pack: 12}, 'Paper plates': {pack: 100}
+  };
+  let milkId = null;
+  list.filter(r => r.kind === 'stock' && !r.deleted).forEach(x => {
+    if (/^milk$/i.test(x.name)) milkId = x.id;
+    if (!STOCK[x.name]) return;
+    out.push(Object.assign({}, x, STOCK[x.name]));
+  });
+
+  // His five workers (0a #2): one shop each, paid per day. Names to be filled in by him.
+  if (!list.some(r => r.kind === 'worker')) {
+    [['tea', 1200, 'Tea master'], ['tea', 800, 'Helper'], ['tea', 800, 'Helper'], ['chaat', 1000, 'Chaat master'], ['chaat', 600, 'Helper']]
+      .forEach(([shop, pay, role], i) => out.push({id: 'worker:seed' + (i + 1), kind: 'worker', name: `${shop === 'tea' ? 'Tea' : 'Chaat'} worker ${shop === 'tea' ? i + 1 : i - 2}`,
+        role, shop, pay, phone: '', joined: shop === 'tea' ? '2026-11-10' : '2026-10-15', active: true}));
+  }
+  // The milk vendor is paid in advance and delivers daily (0a #11, P0-2).
+  if (!list.some(r => r.kind === 'supplier')) {
+    out.push({id: 'supplier:milk', kind: 'supplier', name: 'Milk vendor', cat: 'Milk', stock: milkId, unit: 'L', rate: 80, usual: 38, shop: 'tea', active: true});
+  }
+  return out;
+}
+/** Brings this phone's data up to date. Only the owner or family changes the shared setup. */
+function migrate() {
+  if (!S.session || !can('setup')) return;
+  const changed = upgrade(Array.from(S.recs.values()));
+  changed.forEach(r => save(r));
+}
+
+// Expense categories. fixed = already counted in daily running costs; owner = money taken out, not a cost;
+// advance = money paid ahead to a supplier, counted when the goods arrive.
 const CATS = [
   {k: 'Milk', i: '🥛'}, {k: 'Vegetables', i: '🥕'}, {k: 'Groceries', i: '🧂'}, {k: 'Puris & snacks', i: '🍘'},
   {k: 'Gas', i: '🔥', gas: true}, {k: 'Cigarettes & resale', i: '🚬'}, {k: 'Disposables', i: '🍽️'},
   {k: 'Staff food', i: '🍲'}, {k: 'Transport', i: '🛵'}, {k: 'Repairs', i: '🔧'}, {k: 'Cleaning', i: '🧽'},
-  {k: 'Glasses', i: '🥃'}, {k: 'Rent', i: '🏠', fixed: true}, {k: 'Electricity', i: '💡', fixed: true},
+  {k: 'Glasses', i: '🥃'}, {k: 'Supplier advance', i: '🤝', advance: true}, {k: 'Rent', i: '🏠', fixed: true}, {k: 'Electricity', i: '💡', fixed: true},
   {k: 'Water', i: '🚰', fixed: true}, {k: 'Owner withdrawal', i: '👛', owner: true}, {k: 'Other', i: '📦'}
 ];
 const catOf = k => CATS.find(c => c.k === k) || CATS[CATS.length - 1];
@@ -341,26 +445,46 @@ const S = {
   lastSync: LS.get('lastSync', 0),
   syncing: false,
   online: navigator.onLine !== false,
+  rev: 0,
   listeners: new Set()
 };
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
-const notify = () => S.listeners.forEach(fn => { try { fn(); } catch (e) { console.error(e); } });
+
+// Lookups by kind and by kind+date, and cached results, rebuilt whenever the data changes (P4 speed).
+let IDX = null;
+const memo = new Map();
+function bump() { IDX = null; memo.clear(); S.rev++; }
+function idx() {
+  if (IDX) return IDX;
+  IDX = {kind: new Map(), date: new Map()};
+  const push = (m, k, r) => { const a = m.get(k); if (a) a.push(r); else m.set(k, [r]); };
+  S.recs.forEach(r => { if (r.deleted) return; push(IDX.kind, r.kind, r); if (r.date) push(IDX.date, r.kind + '|' + r.date, r); });
+  return IDX;
+}
+function cached(key, fn) { if (memo.has(key)) return memo.get(key); const v = fn(); memo.set(key, v); return v; }
+const notify = () => { bump(); S.listeners.forEach(fn => { try { fn(); } catch (e) { console.error(e); } }); };
 
 function all(kind, includeDeleted) {
-  const out = [];
-  S.recs.forEach(r => { if (r.kind === kind && (includeDeleted || !r.deleted)) out.push(r); });
-  return out;
+  if (includeDeleted) { const out = []; S.recs.forEach(r => { if (r.kind === kind) out.push(r); }); return out; }
+  return (idx().kind.get(kind) || []).slice();
 }
+const onDate = (kind, date) => idx().date.get(kind + '|' + date) || [];
 function get(id) { const r = S.recs.get(id); return r && !r.deleted ? r : null; }
-function settings() { return get('settings') || SEED.settings(); }
+let defaultSettings = null;
+function settings() { return get('settings') || defaultSettings || (defaultSettings = SEED.records()[0]); }
 
+const clean = r => { const c = Object.assign({}, r); delete c._dirty; delete c._orig; delete c.seq; delete c.base; return c; };
 /** Save one record (creates or updates). Returns the stored record. */
 function save(rec) {
+  const prev = S.recs.get(rec.id);
   const r = Object.assign({}, rec);
   if (!r.id) r.id = r.kind + ':' + uid();
-  r.updatedAt = Date.now();
+  r.updatedAt = Math.max(Date.now(), prev ? (prev.updatedAt || 0) + 1 : 0);
   r.by = S.session ? S.session.user.username : '';
+  // Remember the server copy this edit started from, so a change made on another phone can be merged (P4).
+  r._orig = prev ? (prev._dirty ? prev._orig : clean(prev)) : null;
   r._dirty = 1;
+  delete r.seq;
   S.recs.set(r.id, r);
   DB.putMany([r]);
   notify();
@@ -371,6 +495,32 @@ function remove(id) {
   const r = S.recs.get(id);
   if (!r) return;
   save(Object.assign({}, r, {deleted: 1}));
+}
+
+/** Three-way merge: start from the server copy and re-apply only what this phone changed. */
+const MAPS = ['counts', 'prices', 'marks', 'ot', 'notes', 'tags'];
+function merge3(orig, mine, theirs) {
+  orig = orig || {};
+  const out = Object.assign({}, clean(theirs));
+  const keys = new Set(Object.keys(mine).concat(Object.keys(orig)));
+  keys.forEach(k => {
+    if (['id', 'kind', 'updatedAt', 'by', 'seq', '_dirty', '_orig'].includes(k)) return;
+    const a = orig[k], b = mine[k];
+    if (MAPS.includes(k) && b && typeof b === 'object' && !Array.isArray(b)) {
+      const m = Object.assign({}, theirs[k] || {}), ao = a || {};
+      new Set(Object.keys(b).concat(Object.keys(ao))).forEach(sk => {
+        if (JSON.stringify(b[sk]) === JSON.stringify(ao[sk])) return;
+        if (b[sk] === undefined) delete m[sk]; else m[sk] = b[sk];
+      });
+      out[k] = m;
+    } else if (k === 'tags' && Array.isArray(b)) {
+      const added = b.filter(x => !(a || []).includes(x)), gone = (a || []).filter(x => !b.includes(x));
+      out[k] = Array.from(new Set((theirs[k] || []).concat(added))).filter(x => !gone.includes(x));
+    } else if (JSON.stringify(a) !== JSON.stringify(b)) {
+      if (b === undefined) delete out[k]; else out[k] = b;
+    }
+  });
+  return out;
 }
 
 // ---------- server ----------
@@ -396,14 +546,26 @@ async function sync() {
   S.syncing = true; notify();
   const dirty = [];
   S.recs.forEach(r => { if (r._dirty) dirty.push(r); });
-  const sent = dirty.map(r => { const c = Object.assign({}, r); delete c._dirty; delete c.seq; return c; });
+  const sent = dirty.map(r => Object.assign(clean(r), {base: r._orig ? r._orig.updatedAt || 0 : 0}));
+  let again = false;
   try {
     const d = await api('sync', {since: S.seq, changes: sent});
     const keep = [];
-    dirty.forEach(r => { const now = S.recs.get(r.id); if (now && now.updatedAt === r.updatedAt) { delete now._dirty; keep.push(now); } });
+    const conflicts = new Map((d.conflicts || []).map(c => [c.id, c]));
+    dirty.forEach(r => {
+      const now = S.recs.get(r.id);
+      if (!now) return;
+      const theirs = conflicts.get(r.id);
+      if (theirs) {
+        // Someone else changed this record first: merge both edits and send again.
+        const merged = Object.assign(merge3(now._orig, now, theirs), {id: r.id, kind: now.kind, updatedAt: Math.max(Date.now(), (theirs.updatedAt || 0) + 1), by: now.by, _orig: clean(theirs), _dirty: 1});
+        S.recs.set(r.id, merged); keep.push(merged); again = true;
+      } else if (now.updatedAt === r.updatedAt) { delete now._dirty; delete now._orig; keep.push(now); }
+    });
     d.changes.forEach(c => {
+      if (conflicts.has(c.id)) return;
       const mine = S.recs.get(c.id);
-      if (mine && mine._dirty && mine.updatedAt > c.updatedAt) return;
+      if (mine && mine._dirty) return;   // my newer edit is still waiting; the server will tell if it clashes
       S.recs.set(c.id, c); keep.push(c);
     });
     await DB.putMany(keep);
@@ -418,6 +580,8 @@ async function sync() {
   } finally {
     S.syncing = false; notify();
   }
+  migrate();
+  if (again) queueSync(300);
 }
 function pendingCount() { let n = 0; S.recs.forEach(r => { if (r._dirty) n++; }); return n; }
 
@@ -431,7 +595,7 @@ async function createOwner(setupCode, name, username, pin) {
 }
 async function startSession(d, pin, seed) {
   const prev = LS.get('lastUser', '');
-  if (prev && prev !== d.user.username) { S.recs.clear(); await DB.clear(); S.seq = 0; LS.set('seq', 0); }
+  if (prev && prev !== d.user.username) { S.recs.clear(); bump(); await DB.clear(); S.seq = 0; LS.set('seq', 0); }
   S.session = {token: d.token, user: d.user};
   LS.set('session', S.session);
   LS.set('lastUser', d.user.username);
@@ -457,7 +621,7 @@ async function pinHash(pin, salt) {
   let h = 0; for (const b of data) h = (h * 31 + b) | 0; return 'x' + h;
 }
 let lockedAt = 0;
-function isLocked() { return LS.get('locked', false); }
+function isLocked() { return !DEMO && LS.get('locked', false); }
 function lock() { if (DEMO) return; LS.set('locked', true); notify(); }
 function unlock() { LS.set('locked', false); }
 async function tryUnlock(pin) {
@@ -466,7 +630,7 @@ async function tryUnlock(pin) {
 }
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') { lockedAt = Date.now(); if (pendingCount()) sync().catch(() => {}); }
-  else if (S.session && lockedAt && Date.now() - lockedAt > 3 * 60 * 1000) lock();
+  else if (S.session && lockedAt && Date.now() - lockedAt > 3 * 60 * 1000 && !tallyMode()) lock();
 });
 window.addEventListener('online', () => { S.online = true; sync().catch(() => {}); });
 window.addEventListener('offline', () => { S.online = false; notify(); });
@@ -474,23 +638,32 @@ window.addEventListener('offline', () => { S.online = false; notify(); });
 async function loadStore() {
   await DB.open();
   (await DB.all()).forEach(r => S.recs.set(r.id, r));
+  bump();
   if (DEMO) await demoStart();
-  if (S.session && !get('settings') && !S.seq) { /* fresh phone: wait for first sync */ }
+  migrate();
 }
 const can = what => {
   const role = S.session ? S.session.user.role : '';
   if (role === 'owner' || role === 'family') return true;
-  return ['sales', 'cash', 'expense', 'count', 'att'].includes(what);
+  return ['sales', 'cash', 'expense', 'count', 'att', 'tally'].includes(what);
 };
 
-/* Dates, money and every business calculation (profit, gaps, stock, wages, predictions). */
+/* Dates, money and every business calculation (costs, profit, gaps, stock, wages, suppliers, predictions).
+   Pure functions over the records; results are cached until the data changes (see cached() in store.js). */
 const pad2 = n => String(n).padStart(2, '0');
 const ymd = d => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 const parseD = s => { const [y, m, d] = s.split('-').map(Number); return new Date(y, m - 1, d); };
-const today = () => ymd(new Date());
+// The business day starts at settings.dayStartsAt (4 am): closing at 12:30 am still belongs to the day before.
+function dayStartMin() {
+  const st = get('settings');
+  const [hh, mm] = String((st && st.dayStartsAt) || '04:00').split(':').map(Number);
+  return (hh || 0) * 60 + (mm || 0);
+}
+const today = () => ymd(new Date(Date.now() - dayStartMin() * 60000));
 const addDays = (s, n) => { const d = parseD(s); d.setDate(d.getDate() + n); return ymd(d); };
 const DOW = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const longDate = s => { const d = parseD(s); return `${DOW[d.getDay()]} ${d.getDate()} ${MON[d.getMonth()]}`; };
 function dateLabel(s) {
   const t = today();
   if (s === t) return 'Today';
@@ -500,72 +673,147 @@ function dateLabel(s) {
   return `${DOW[d.getDay()]}, ${d.getDate()} ${MON[d.getMonth()]}`;
 }
 const daysInMonth = s => { const d = parseD(s); return new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate(); };
+const daysBetween = (a, b) => Math.round((parseD(b) - parseD(a)) / 864e5);
 function range(from, to) { const out = []; for (let d = from; d <= to; d = addDays(d, 1)) out.push(d); return out; }
+const sumBy = (list, fn) => list.reduce((a, x) => a + (Number(fn(x)) || 0), 0);
 
 function inr(n) {
-  n = Math.round(Number(n) || 0);
-  const neg = n < 0, s = String(Math.abs(n));
+  const s = String(Math.round(Math.abs(Number(n) || 0)));
   let last3 = s.slice(-3), rest = s.slice(0, -3);
   if (rest) last3 = ',' + last3;
-  return (neg ? '−' : '') + rest.replace(/\B(?=(\d{2})+(?!\d))/g, ',') + last3;
+  return rest.replace(/\B(?=(\d{2})+(?!\d))/g, ',') + last3;
 }
-const rs = n => '₹' + inr(n);
+const rs = n => (Math.round(Number(n) || 0) < 0 ? '−₹' : '₹') + inr(n);
 const qty = n => (Math.round((Number(n) || 0) * 100) / 100).toString();
+// Units counted in whole pieces (P2: no "15.2 pcs").
+const WHOLE_UNITS = /^(pcs|packet|bucket|box|bag|tin|bottle)$/;
+
+// ---------- shops ----------
 const SHOP_KEYS = ['chaat', 'tea'];
-const shopName = s => s === 'both' ? 'Both shops' : s === 'shared' ? 'Shared' : ((settings().shops[s] || {}).name || s);
+const shopSet = s => (settings().shops || {})[s] || {};
+const shopName = s => s === 'both' ? 'Both shops' : s === 'shared' ? 'Shared' : (shopSet(s).name || s);
 const inShop = (recShop, shop) => !shop || shop === 'both' || recShop === shop;
-// Share of a cost that belongs to a shop. Shared/both costs are split 50/50 (questionnaire C14).
-const share = (recShop, shop) => !shop || shop === 'both' ? 1 : recShop === shop ? 1 : (recShop === 'shared' || recShop === 'both') ? 0.5 : 0;
+const openedOn = s => shopSet(s).opened || '';
+const isOpen = (s, date) => !openedOn(s) || date >= openedOn(s);
+const openShops = date => SHOP_KEYS.filter(s => isOpen(s, date));
+const salesMode = s => shopSet(s).salesMode || 'items';
+/** Share of a cost that belongs to `shop` ('both' = all of it). Shared costs are split equally
+    between the shops that were open that day (C14; before the tea shop opened, chaat carries them). */
+function share(recShop, shop, date) {
+  if (!shop || shop === 'both' || recShop === shop) return 1;
+  if (recShop !== 'shared' && recShop !== 'both') return 0;
+  const open = date ? openShops(date) : SHOP_KEYS;
+  if (!open.length) return 1 / SHOP_KEYS.length;
+  return open.includes(shop) ? 1 / open.length : 0;
+}
 
 // ---------- items and sales ----------
 const items = shop => all('item').filter(i => i.active !== false && inShop(i.shop, shop)).sort((a, b) => (a.order || 0) - (b.order || 0));
 const saleId = (date, shop) => `sale:${date}:${shop}`;
 const saleOf = (date, shop) => get(saleId(date, shop));
+const tallyOf = (date, shop) => get(`tally:${date}:${shop}`);
 
 function saleTotals(date, shop) {
-  const out = {expected: 0, cash: 0, upi: 0, collected: 0, units: 0, entered: false, byItem: {}};
-  SHOP_KEYS.filter(s => inShop(s, shop)).forEach(s => {
-    const r = saleOf(date, s);
-    if (!r) return;
-    out.entered = true;
-    Object.keys(r.counts || {}).forEach(id => {
-      const it = get(id);
-      const n = Number(r.counts[id]) || 0;
-      const price = r.prices && r.prices[id] != null ? r.prices[id] : (it ? it.price : 0);
-      out.expected += n * price;
-      if (it && !it.parcel) out.units += n;
-      out.byItem[id] = (out.byItem[id] || 0) + n;
+  return cached(`st|${date}|${shop}`, () => {
+    const out = {expected: 0, cash: 0, upi: 0, unpaid: 0, short: 0, units: 0, entered: false, counted: false, countedMoney: 0, byItem: {}, byItemSales: {}};
+    SHOP_KEYS.filter(s => inShop(s, shop)).forEach(s => {
+      const r = saleOf(date, s);
+      if (!r) return;
+      const cash = Number(r.cash) || 0, upi = Number(r.upi) || 0;
+      if (cash || upi || Object.keys(r.counts || {}).length) out.entered = true;
+      const ids = Object.keys(r.counts || {}).filter(id => Number(r.counts[id]) > 0);
+      let value = 0;
+      ids.forEach(id => {
+        const it = get(id), n = Number(r.counts[id]) || 0;
+        const price = r.prices && r.prices[id] != null ? Number(r.prices[id]) : (it ? Number(it.price) || 0 : 0);
+        value += n * price;
+        if (it && !it.parcel) out.units += n;
+        out.byItem[id] = (out.byItem[id] || 0) + n;
+        out.byItemSales[id] = (out.byItemSales[id] || 0) + n * price;
+      });
+      out.expected += value;
+      // The money-vs-items check only makes sense when both counts and money were entered (P0-3).
+      if (ids.length && (cash || upi)) { out.counted = true; out.countedMoney += cash + upi; out.countedValue = (out.countedValue || 0) + value; }
+      out.cash += cash; out.upi += upi;
+      out.unpaid += Number(r.unpaid) || 0; out.short += Number(r.short) || 0;
     });
-    out.cash += Number(r.cash) || 0;
-    out.upi += Number(r.upi) || 0;
+    out.collected = out.cash + out.upi;
+    out.gap = out.counted ? out.countedMoney - out.countedValue : 0;
+    out.sales = out.collected || out.expected;   // money actually received; falls back to counts
+    return out;
   });
-  out.collected = out.cash + out.upi;
-  out.gap = out.collected - out.expected;
-  out.sales = out.collected || out.expected;   // money actually received; falls back to counts
-  return out;
+}
+
+// ---------- suppliers (P0-2: paid in advance, delivered daily) ----------
+const suppliers = () => all('supplier').filter(s => s.active !== false);
+const milkSupplier = () => suppliers().find(s => /milk/i.test((s.cat || '') + ' ' + s.name));
+const deliveryId = (date, sup) => `delivery:${date}:${sup}`;
+function supplierBalance(sup) {
+  return cached('sb|' + sup.id, () => {
+    const paid = sumBy(all('expense').filter(e => e.supplier === sup.id && catOf(e.cat).advance), e => e.amount);
+    const got = sumBy(all('delivery').filter(d => d.supplier === sup.id), d => d.amount);
+    const perDay = (Number(sup.usual) || 0) * (Number(sup.rate) || 0);
+    const balance = paid - got;
+    return {paid, got, balance, perDay, days: perDay ? balance / perDay : null};
+  });
 }
 
 // ---------- costs ----------
-const expensesOn = (date, shop) => all('expense').filter(e => e.date === date && share(e.shop, shop) > 0);
-function expenseTotals(date, shop) {
-  let variable = 0, fixedPaid = 0, owner = 0, cashOut = 0;
-  expensesOn(date, shop).forEach(e => {
-    const c = catOf(e.cat), amt = (Number(e.amount) || 0) * share(e.shop, shop);
-    if (c.owner) owner += amt; else if (c.fixed) fixedPaid += amt; else variable += amt;
-    if (e.pay === 'cash') cashOut += amt;
+const boxOf = e => e.pay === 'cash' ? (e.box || (e.shop === 'chaat' ? 'chaat' : 'tea')) : null;
+/** Rent and monthly bills for one day. Nothing before a shop's opening date (P0-5). */
+function fixedParts(date, shop) {
+  const st = settings(), dim = daysInMonth(date), open = openShops(date);
+  let rent = 0, bills = 0;
+  SHOP_KEYS.forEach(s => { if (isOpen(s, date) && inShop(s, shop)) rent += Number(shopSet(s).rent) || 0; });
+  (st.fixed || []).forEach(f => {
+    const own = SHOP_KEYS.includes(f.shop);
+    if (own ? !isOpen(f.shop, date) : !open.length) return;
+    bills += (Number(f.amount) || 0) * share(f.shop, shop, date);
   });
-  return {variable, fixedPaid, owner, cashOut};
+  return {rent: rent / dim, bills: bills / dim};
 }
-function fixedPerDay(date, shop) {
-  const st = settings(), dim = daysInMonth(date);
-  let month = 0;
-  SHOP_KEYS.forEach(s => { month += (Number(st.shops[s].rent) || 0) * share(s, shop); });
-  (st.fixed || []).forEach(f => { month += (Number(f.amount) || 0) * share(f.shop, shop); });
-  return month / dim;
+const fixedPerDay = (date, shop) => { const f = fixedParts(date, shop); return f.rent + f.bills; };
+
+/** Every cost charged to one day, as named lines. This is the one place that decides what a day costs,
+    so the owner's own method (review Q-G) can replace it. Today: purchases on the day they are entered
+    (milk on the day it is delivered), wages earned, and a day's share of rent and bills. */
+function dayCost(date, shop) {
+  return cached(`dc|${date}|${shop}`, () => {
+    const lines = [];
+    const add = (label, amount, kind) => {
+      if (!amount) return;
+      const l = lines.find(x => x.label === label);
+      if (l) l.amount += amount; else lines.push({label, amount, kind});
+    };
+    add('Wages', wagesOn(date, shop), 'wages');
+    onDate('expense', date).forEach(e => {
+      const c = catOf(e.cat);
+      if (c.fixed || c.owner || c.advance) return;
+      add(e.cat, (Number(e.amount) || 0) * share(e.shop, shop, date), 'spend');
+    });
+    onDate('delivery', date).forEach(d => {
+      const sup = get(d.supplier);
+      add((sup && sup.cat) || 'Milk', (Number(d.amount) || 0) * share(d.shop || (sup && sup.shop) || 'tea', shop, date), 'spend');
+    });
+    const f = fixedParts(date, shop);
+    add('Rent', f.rent, 'fixed');
+    add('Bills', f.bills, 'fixed');
+    const by = k => sumBy(lines.filter(l => l.kind === k), l => l.amount);
+    return {lines, spend: by('spend'), wages: by('wages'), fixed: by('fixed'), total: sumBy(lines, l => l.amount)};
+  });
+}
+/** Money that went out today (P0-1 fallback tile): purchases, advances and wage payments. */
+function cashSpent(date, shop) {
+  const exp = sumBy(onDate('expense', date).filter(e => !catOf(e.cat).owner), e => (Number(e.amount) || 0) * share(e.shop, shop, date));
+  const pay = sumBy(onDate('wpay', date).filter(p => ['salary', 'advance', 'bonus'].includes(p.type)), p => {
+    const w = get(p.worker); return (Number(p.amount) || 0) * share(w ? workerShop(w) : 'shared', shop, date);
+  });
+  return {total: exp + pay, purchases: exp, wages: pay};
 }
 
 // ---------- workers ----------
-const workers = () => all('worker').filter(w => w.active !== false).sort((a, b) => a.name.localeCompare(b.name));
+const workers = () => all('worker').filter(w => w.active !== false).sort((a, b) => (a.shop || '').localeCompare(b.shop || '') || a.name.localeCompare(b.name));
+const workerShop = w => !w.shop || w.shop === 'both' ? 'shared' : w.shop;
 const attOf = date => get('att:' + date);
 function wageFor(w, date) {
   const a = attOf(date);
@@ -576,112 +824,245 @@ function wageFor(w, date) {
   return day * (Number(w.pay) || 0) + ot * (Number(settings().overtimeRate) || 0);
 }
 function wagesOn(date, shop) {
-  let t = 0;
-  all('worker').forEach(w => {
-    const part = share(w.shop === 'both' ? 'shared' : w.shop, shop);
-    t += wageFor(w, date) * part;
-    all('wpay').filter(p => p.worker === w.id && p.type === 'bonus' && p.date === date).forEach(p => { t += (Number(p.amount) || 0) * part; });
+  return cached(`wg|${date}|${shop}`, () => {
+    let t = 0;
+    all('worker').forEach(w => {
+      const part = share(workerShop(w), shop, date);
+      if (!part) return;
+      t += wageFor(w, date) * part;
+      // A bonus, or an advance written off when someone leaves, is a wage cost on that day.
+      onDate('wpay', date).filter(p => p.worker === w.id && (p.type === 'bonus' || p.type === 'writeoff')).forEach(p => { t += (Number(p.amount) || 0) * part; });
+    });
+    return t;
   });
-  return t;
 }
 function workerBalance(w) {
-  let earned = 0, paid = 0;
-  all('att').forEach(a => { earned += wageFor(w, a.date); });
-  // Salary and advance payments reduce what is owed. A bonus is earned and paid at once, so it nets to zero.
-  all('wpay').filter(p => p.worker === w.id && p.type !== 'bonus').forEach(p => { paid += Number(p.amount) || 0; });
-  return {earned, paid, due: earned - paid};
+  return cached('wb|' + w.id, () => {
+    let earned = 0, paid = 0;
+    all('att').forEach(a => { earned += wageFor(w, a.date); });
+    all('wpay').filter(p => p.worker === w.id).forEach(p => {
+      const amt = Number(p.amount) || 0;
+      if (p.type === 'salary' || p.type === 'advance') paid += amt;
+      else if (p.type === 'returned') paid -= amt;     // advance given back
+      else if (p.type === 'writeoff') earned += amt;   // advance not recovered
+    });
+    return {earned, paid, due: earned - paid};
+  });
+}
+const wpayId = (date, w) => `wpay:${date}:${w.id}`;
+/** "Pay everyone today's wage" (P1-4): one salary payment per worker for that day's wage; tapping twice does not pay twice. */
+function payEveryone(date, pay) {
+  const made = [];
+  workers().forEach(w => {
+    const amt = Math.round(wageFor(w, date));
+    if (!amt || get(wpayId(date, w))) return;
+    made.push(save({id: wpayId(date, w), kind: 'wpay', worker: w.id, date, type: 'salary', amount: amt, pay, box: pay === 'cash' ? (w.shop === 'chaat' ? 'chaat' : 'tea') : undefined, daily: true}));
+  });
+  return made;
+}
+function pettyBalance(wId) {
+  const given = sumBy(all('petty').filter(p => p.worker === wId && p.type === 'give'), p => p.amount);
+  const back = sumBy(all('petty').filter(p => p.worker === wId && p.type === 'return'), p => p.amount);
+  const spent = sumBy(all('expense').filter(e => e.pay === 'petty' && e.worker === wId), e => e.amount);
+  return given - spent - back;
 }
 
-// ---------- day summary ----------
+// ---------- cash boxes (one per shop, P0-4) ----------
+const wpayBox = p => p.box || ((get(p.worker) || {}).shop === 'chaat' ? 'chaat' : 'tea');
+function expectedCash(date, shop) {
+  const st = settings();
+  const float = Number(shop === 'chaat' ? st.floatChaat : st.floatTea) || 0;
+  const sales = saleTotals(date, shop).cash;
+  const spent = sumBy(onDate('expense', date).filter(e => boxOf(e) === shop), e => e.amount);
+  const wages = sumBy(onDate('wpay', date).filter(p => p.pay === 'cash' && wpayBox(p) === shop && p.type !== 'writeoff'), p => (p.type === 'returned' ? -1 : 1) * (Number(p.amount) || 0));
+  const petty = sumBy(onDate('petty', date).filter(p => p.pay === 'cash' && (p.box || 'tea') === shop), p => (p.type === 'give' ? 1 : -1) * (Number(p.amount) || 0));
+  return {float, sales, spent, wages, petty, expected: float + sales - spent - wages - petty};
+}
+
+// ---------- day and period summaries ----------
 function daySummary(date, shop) {
-  const s = saleTotals(date, shop), e = expenseTotals(date, shop);
-  const wages = wagesOn(date, shop), fixed = fixedPerDay(date, shop);
-  const profit = s.sales - e.variable - wages - fixed;
-  return {date, sales: s.sales, expected: s.expected, gap: s.gap, cash: s.cash, upi: s.upi, units: s.units, entered: s.entered,
-    spend: e.variable, wages, fixed, profit, owner: e.owner, byItem: s.byItem};
+  return cached(`ds|${date}|${shop}`, () => {
+    const s = saleTotals(date, shop), c = dayCost(date, shop);
+    return {date, sales: s.sales, expected: s.expected, gap: s.gap, counted: s.counted, cash: s.cash, upi: s.upi, unpaid: s.unpaid, short: s.short,
+      units: s.units, entered: s.entered, spend: c.spend, wages: c.wages, fixed: c.fixed, cost: c.total, lines: c.lines, profit: s.sales - c.total, byItem: s.byItem};
+  });
 }
 function periodSummary(from, to, shop) {
-  const days = range(from, to).map(d => daySummary(d, shop));
-  const sum = k => days.reduce((a, d) => a + d[k], 0);
-  const open = days.filter(d => d.entered).length;
-  return {days, open, sales: sum('sales'), spend: sum('spend'), wages: sum('wages'), fixed: sum('fixed'), profit: sum('profit'),
-    cash: sum('cash'), upi: sum('upi'), gap: sum('gap'), expected: sum('expected')};
+  return cached(`ps|${from}|${to}|${shop}`, () => {
+    const days = range(from, to).map(d => daySummary(d, shop));
+    const sum = k => sumBy(days, d => d[k]);
+    const lines = [];
+    days.forEach(d => d.lines.forEach(l => { const x = lines.find(y => y.label === l.label); if (x) x.amount += l.amount; else lines.push(Object.assign({}, l)); }));
+    lines.sort((a, b) => b.amount - a.amount);
+    return {days, open: days.filter(d => d.entered).length, counted: days.filter(d => d.counted).length, lines,
+      sales: sum('sales'), spend: sum('spend'), wages: sum('wages'), fixed: sum('fixed'), cost: sum('cost'), profit: sum('profit'),
+      cash: sum('cash'), upi: sum('upi'), gap: sum('gap'), expected: sum('expected'), unpaid: sum('unpaid'), short: sum('short')};
+  });
+}
+function lastEnteredDay(upto, shop) {
+  for (let i = 0; i < 14; i++) { const d = addDays(upto, -i); if (saleTotals(d, shop).entered) return d; }
+  return null;
+}
+/** P0-1 fallback: never show one day's profit on its own. 7-day average and month so far,
+    both up to the last day with sales entered. */
+function profitTrend(date, shop) {
+  const last = lastEnteredDay(date, shop);
+  if (!last) return null;
+  const days = range(addDays(last, -6), last).filter(d => openShops(d).some(s => inShop(s, shop)));
+  const avg = days.length ? sumBy(days, d => daySummary(d, shop).profit) / days.length : 0;
+  const month = periodSummary(last.slice(0, 8) + '01', last, shop).profit;
+  return {avg, days: days.length, month, upto: last};
+}
+/** This month so far against the same days of last month (P0-6). */
+function monthCompare(date, shop) {
+  const n = Number(date.slice(8)), d = parseD(date);
+  const lFrom = ymd(new Date(d.getFullYear(), d.getMonth() - 1, 1));
+  const lTo = addDays(lFrom, Math.min(n, daysInMonth(lFrom)) - 1);
+  return {n, now: periodSummary(date.slice(0, 8) + '01', date, shop), before: periodSummary(lFrom, lTo, shop), lFrom, lTo};
 }
 function itemTotals(from, to, shop) {
   const map = {};
   range(from, to).forEach(d => {
     const t = saleTotals(d, shop);
-    Object.keys(t.byItem).forEach(id => { map[id] = (map[id] || 0) + t.byItem[id]; });
+    Object.keys(t.byItem).forEach(id => {
+      const m = map[id] || (map[id] = {n: 0, sales: 0});
+      m.n += t.byItem[id]; m.sales += t.byItemSales[id];   // price stored with each day's sale
+    });
   });
   return Object.keys(map).map(id => {
     const it = get(id) || {name: '(removed item)', price: 0, cost: 0};
-    const n = map[id];
-    return {id, item: it, n, sales: n * (it.price || 0), profit: it.cost ? n * (it.price - it.cost) : null};
+    const {n, sales} = map[id];
+    return {id, item: it, n, sales, profit: it.cost ? sales - n * it.cost : null};
   }).filter(r => r.n > 0).sort((a, b) => b.sales - a.sales);
+}
+function labourCost(from, to, shop) {
+  const p = periodSummary(from, to, shop);
+  const food = sumBy(all('expense').filter(e => e.date >= from && e.date <= to && e.cat === 'Staff food'), e => (Number(e.amount) || 0) * share(e.shop, shop, e.date));
+  let workerDays = 0;
+  all('att').filter(a => a.date >= from && a.date <= to).forEach(a => all('worker').forEach(w => {
+    const m = (a.marks || {})[w.id];
+    workerDays += (m === 'P' ? 1 : m === 'H' ? 0.5 : 0) * share(workerShop(w), shop, a.date);
+  }));
+  return {wages: p.wages, food, sales: p.sales, pct: p.sales ? (p.wages + food) / p.sales * 100 : null, perWorkerDay: workerDays ? p.sales / workerDays : null, workerDays};
 }
 
 // ---------- stock ----------
 const stockItems = () => all('stock').filter(s => s.active !== false).sort((a, b) => (a.order || 0) - (b.order || 0));
+/** Everything that added to a stock item: purchases linked to it and supplier deliveries. */
+function stockIn(sId) {
+  return cached('si|' + sId, () => {
+    const out = all('expense').filter(e => e.stock === sId).map(e => ({date: e.date, qty: Number(e.qty) || 0}));
+    suppliers().filter(s => s.stock === sId).forEach(sup => all('delivery').filter(d => d.supplier === sup.id).forEach(d => out.push({date: d.date, qty: Number(d.qty) || 0})));
+    return out;
+  });
+}
+const inBetween = (sId, after, upto) => sumBy(stockIn(sId).filter(x => (!after || x.date > after) && (!upto || x.date <= upto)), x => x.qty);
 function stockLevel(s) {
-  const counts = all('count').filter(c => c.counts && c.counts[s.id] != null).sort((a, b) => a.date < b.date ? 1 : -1);
-  const last = counts[0];
-  const bought = after => all('expense').filter(e => e.stock === s.id && (!after || e.date > after)).reduce((a, e) => a + (Number(e.qty) || 0), 0);
-  const level = last ? Number(last.counts[s.id]) + bought(last.date) : null;
-  // Average daily use from the last pairs of counts: opening + bought − closing.
-  let used = 0, days = 0;
-  for (let i = 0; i + 1 < counts.length && days < 14; i++) {
-    const a = counts[i + 1], b = counts[i];
-    const inBetween = all('expense').filter(e => e.stock === s.id && e.date > a.date && e.date <= b.date).reduce((x, e) => x + (Number(e.qty) || 0), 0);
-    const u = Number(a.counts[s.id]) + inBetween - Number(b.counts[s.id]);
-    const span = Math.max(1, Math.round((parseD(b.date) - parseD(a.date)) / 864e5));
-    if (u >= 0) { used += u; days += span; }
-  }
-  const perDay = days ? used / days : null;
-  return {level, lastCount: last ? last.date : null, perDay, low: level != null && level <= (Number(s.low) || 0), daysLeft: perDay && level != null ? level / perDay : null};
+  return cached('sl|' + s.id, () => {
+    const counts = all('count').filter(c => c.counts && c.counts[s.id] != null && c.counts[s.id] !== '').sort((a, b) => a.date < b.date ? 1 : -1);
+    const last = counts[0];
+    const level = last ? Number(last.counts[s.id]) + inBetween(s.id, last.date) : null;
+    // Average daily use from the last pairs of counts: opening + bought − closing.
+    let used = 0, days = 0;
+    for (let i = 0; i + 1 < counts.length && days < 14; i++) {
+      const a = counts[i + 1], b = counts[i];
+      const u = Number(a.counts[s.id]) + inBetween(s.id, a.date, b.date) - Number(b.counts[s.id]);
+      if (u >= 0) { used += u; days += Math.max(1, daysBetween(a.date, b.date)); }
+    }
+    const perDay = days ? used / days : null;
+    return {level, lastCount: last ? last.date : null, perDay, low: level != null && level <= (Number(s.low) || 0), daysLeft: perDay && level != null ? level / perDay : null};
+  });
+}
+/** Stock used between two dates, from the counts nearest the ends. */
+function usedBetween(s, from, to) {
+  const counts = all('count').filter(c => c.counts && c.counts[s.id] != null && c.counts[s.id] !== '' && c.date >= addDays(from, -1) && c.date <= to).sort((a, b) => a.date < b.date ? -1 : 1);
+  if (counts.length < 2) return null;
+  const a = counts[0], b = counts[counts.length - 1];
+  return {used: Number(a.counts[s.id]) + inBetween(s.id, a.date, b.date) - Number(b.counts[s.id]), from: a.date, to: b.date, days: daysBetween(a.date, b.date)};
+}
+/** Shopping list: enough for 2 days, rounded up to whole packs (P3-9). Supplier items are a standing order instead. */
+function shoppingList() {
+  const fromSupplier = new Set(suppliers().map(s => s.stock).filter(Boolean));
+  const out = [];
+  stockItems().forEach(s => {
+    if (fromSupplier.has(s.id)) return;
+    const l = stockLevel(s), pack = Number(s.pack) || 0;
+    if (l.perDay && l.level != null) {
+      const need = l.perDay * 2 - l.level;
+      if (need <= 0) return;
+      if (pack) { const packs = Math.ceil(need / pack); out.push([s.name, `${packs} × ${qty(pack)} ${s.unit}`]); }
+      else out.push([s.name, `${qty(WHOLE_UNITS.test(s.unit) ? Math.ceil(need) : Math.ceil(need * 10) / 10)} ${s.unit}`]);
+    } else if (l.low) out.push([s.name, 'running low']);
+  });
+  return out;
 }
 
 // ---------- predictions ----------
-// Expected count for an item on a date: average of the last 4 same weekdays, else of the last 7 days.
-function expectedCount(itemId, shop, date) {
+// Days tagged like this sell less (K6a), so they are left out of the averages (P3-8).
+const SKIP_TAGS = ['Rain', 'Holiday', 'Festival', 'Closed', 'Power cut'];
+const unusualDay = d => { const t = get('tag:' + d); return !!(t && (t.tags || []).some(x => SKIP_TAGS.includes(x))); };
+function pickDays(date, shop, ok) {
   const same = [], recent = [];
   for (let i = 1; i <= 28; i++) {
-    const d = addDays(date, -i), r = saleOf(d, shop);
-    if (!r || !r.counts) continue;
-    const n = Number(r.counts[itemId]) || 0;
-    if (i % 7 === 0) same.push(n);
-    if (i <= 7) recent.push(n);
+    const d = addDays(date, -i);
+    if (unusualDay(d) || !ok(d)) continue;
+    if (i % 7 === 0) same.push(d);
+    if (recent.length < 7) recent.push(d);
   }
-  const pick = same.length >= 2 ? same : recent;
-  return pick.length ? pick.reduce((a, b) => a + b, 0) / pick.length : null;
+  return same.length >= 2 ? same : recent;
+}
+// Expected count for an item: average of the last 4 same weekdays, else of the last 7 normal days.
+function expectedCount(itemId, shop, date) {
+  const ds = pickDays(date, shop, d => { const r = saleOf(d, shop); return !!(r && r.counts && Object.keys(r.counts).length); });
+  return ds.length ? sumBy(ds, d => saleOf(d, shop).counts[itemId]) / ds.length : null;
+}
+function expectedSales(date, shop) {
+  let total = 0, any = false;
+  SHOP_KEYS.filter(s => inShop(s, shop) && isOpen(s, date)).forEach(s => {
+    const ds = pickDays(date, s, d => saleTotals(d, s).entered);
+    if (!ds.length) return;
+    any = true; total += sumBy(ds, d => saleTotals(d, s).sales) / ds.length;
+  });
+  return any ? total : null;
+}
+function avgSales(shop, upto) {
+  const ds = range(addDays(upto, -27), upto).filter(d => !unusualDay(d) && saleTotals(d, shop).entered);
+  return ds.length ? sumBy(ds, d => saleTotals(d, shop).sales) / ds.length : null;
 }
 function forecast(date, shop) {
-  const rows = items(shop).filter(i => !i.parcel).map(i => ({item: i, n: expectedCount(i.id, i.shop, date)})).filter(r => r.n != null);
-  const sales = rows.reduce((a, r) => a + r.n * (r.item.price || 0), 0);
-  return {rows, sales, hasData: rows.some(r => r.n > 0)};
+  const rows = items(shop).filter(i => !i.parcel && salesMode(i.shop) === 'items').map(i => ({item: i, n: expectedCount(i.id, i.shop, date)})).filter(r => r.n != null);
+  const sales = expectedSales(date, shop);
+  return {rows, sales, hasData: sales != null && sales > 0};
 }
 function prepPlan(date) {
-  const st = settings();
-  const tea = forecast(date, 'tea').rows;
-  const chaat = forecast(date, 'chaat').rows;
-  const cups = tea.filter(r => !r.item.resale).reduce((a, r) => a + r.n, 0);
-  const pani = chaat.filter(r => /pani puri/i.test(r.item.name)).reduce((a, r) => a + r.n, 0);
-  return {
-    cups: Math.round(cups),
-    milkL: cups * (st.milkMlPerCup || 0) / 1000,
-    teaKg: cups * (st.teaGPerCup || 0) / 1000,
-    paniPlates: Math.round(pani),
-    puriPackets: pani * (st.purisPerPlate || 6) / (st.purisPerPacket || 100)
-  };
+  const st = settings(), t = today();
+  const out = {};
+  const sup = milkSupplier();
+  if (sup) {
+    const s = sup.stock ? get(sup.stock) : null, l = s ? stockLevel(s) : null;
+    const base = (l && l.perDay) || Number(sup.usual) || 0;
+    const fc = expectedSales(date, 'tea'), avg = avgSales('tea', t);
+    const ratio = fc && avg ? Math.min(1.3, Math.max(0.7, fc / avg)) : 1;
+    // Only what was counted at today's closing is really left over; earlier counts would include today's delivery.
+    const onHand = l && l.level != null && l.lastCount === t ? Math.max(0, l.level) : 0;
+    out.milk = {need: base * ratio, onHand, order: Math.max(0, Math.round(base * ratio - onHand)), unit: sup.unit || 'L', vendor: sup.name};
+  }
+  const plates = sumBy(forecast(date, 'chaat').rows.filter(r => /pani puri|masala puri/i.test(r.item.name)), r => r.n);
+  if (plates) {
+    const puris = plates * (Number(st.purisPerPlate) || 8);
+    out.puris = {plates: Math.round(plates), puris: Math.round(puris), buckets: st.purisPerBucket ? puris / st.purisPerBucket : null};
+  }
+  return out;
 }
 function gasForecast() {
   const by = {};
   all('expense').filter(e => catOf(e.cat).gas).forEach(e => { const c = e.counter || shopName(e.shop); (by[c] = by[c] || []).push(e.date); });
-  return Object.keys(by).map(counter => {
+  return Object.keys(by).filter(c => c !== 'Bajji' || settings().bajjiOn).map(counter => {
     const ds = by[counter].sort();
-    let gaps = [];
-    for (let i = 1; i < ds.length; i++) gaps.push((parseD(ds[i]) - parseD(ds[i - 1])) / 864e5);
-    gaps = gaps.filter(g => g > 0).slice(-5);
-    const avg = gaps.length ? gaps.reduce((a, b) => a + b, 0) / gaps.length : null;
+    const gaps = [];
+    for (let i = 1; i < ds.length; i++) gaps.push(daysBetween(ds[i - 1], ds[i]));
+    const g = gaps.filter(x => x > 0).slice(-5);
+    const avg = g.length ? g.reduce((a, b) => a + b, 0) / g.length : null;
     return {counter, last: ds[ds.length - 1], every: avg, next: avg ? addDays(ds[ds.length - 1], Math.round(avg)) : null};
   });
 }
@@ -692,15 +1073,82 @@ function breakEven(shop) {
   const fixedDay = fixedPerDay(t, shop) + (p.open ? p.wages / p.open : 0);
   return {perDay: fixedDay / (1 - varRatio), varRatio, basedOn: p.open};
 }
-function payback() {
-  const st = settings();
-  const invested = SHOP_KEYS.reduce((a, s) => a + (Number(st.shops[s].investment) || 0), 0);
-  const sales = all('sale').map(r => r.date).sort();
-  if (!sales.length) return {invested, earned: 0, perDay: 0, monthsLeft: null};
-  const p = periodSummary(sales[0], today(), 'both');
+/** Investment payback for one shop or both, counted from the opening dates (P0-9). */
+function payback(shop) {
+  const keys = SHOP_KEYS.filter(s => inShop(s, shop));
+  const invested = sumBy(keys, s => shopSet(s).investment);
+  const starts = keys.map(openedOn).filter(Boolean).sort();
+  const firstSale = all('sale').filter(r => keys.includes(r.shop)).map(r => r.date).sort()[0];
+  const start = starts[0] || firstSale;
+  const t = today();
+  if (!start || start > t) return {invested, earned: 0, perDay: 0, monthsLeft: null, recoveredOn: null};
+  const p = periodSummary(start, t, shop);
+  let run = 0, recoveredOn = null;
+  p.days.forEach(d => { run += d.profit; if (!recoveredOn && invested && run >= invested) recoveredOn = d.date; });
   const perDay = p.open ? p.profit / p.open : 0;
   const left = invested - p.profit;
-  return {invested, earned: p.profit, perDay, monthsLeft: perDay > 0 ? left / perDay / 30 : null};
+  return {invested, earned: p.profit, perDay, recoveredOn, monthsLeft: !recoveredOn && perDay > 0 ? left / perDay / 30 : null};
+}
+/** Monthly sales target per shop (P3-5). */
+function targetProgress(date, shop) {
+  const target = sumBy(SHOP_KEYS.filter(s => inShop(s, shop)), s => shopSet(s).target);
+  if (!target) return null;
+  const sales = periodSummary(date.slice(0, 8) + '01', date, shop).sales;
+  const left = daysInMonth(date) - Number(date.slice(8)) + (saleTotals(date, shop).entered ? 0 : 1);
+  return {target, sales, pct: sales / target * 100, needPerDay: left > 0 ? Math.max(0, (target - sales) / left) : 0, daysLeft: left};
+}
+
+// ---------- leakage check (P3, weekly) ----------
+function leakageCheck(end) {
+  const st = settings(), from = addDays(end, -6), out = {from, end};
+  const sup = milkSupplier(), milk = sup && sup.stock ? get(sup.stock) : stockItems().find(s => /milk/i.test(s.name));
+  if (!Number(st.cupsPerLitre)) out.tea = {needs: 'how many cups of tea you get from 1 litre of milk'};
+  else if (!milk || !usedBetween(milk, from, end)) out.tea = {needs: 'milk counted at closing on at least two days this week'};
+  else {
+    const u = usedBetween(milk, from, end), cups = u.used * st.cupsPerLitre;
+    const price = Number(st.avgCupPrice) || 15;
+    out.tea = {milkUsed: u.used, cups, drinks: cups * price, price, money: periodSummary(u.from, u.to, 'tea').sales, days: u.days};
+  }
+  const puris = stockItems().find(s => /puri/i.test(s.name));
+  if (!Number(st.purisPerBucket)) out.chaat = {needs: 'how many puris come in one bucket'};
+  else if (!puris || !usedBetween(puris, from, end)) out.chaat = {needs: 'puris counted at closing on at least two days this week'};
+  else {
+    const u = usedBetween(puris, from, end), per = Number(st.purisPerPlate) || 8;
+    const expected = u.used * st.purisPerBucket / per;
+    let sold = 0;
+    range(addDays(u.from, 1), u.to).forEach(d => {
+      const r = saleOf(d, 'chaat'), c = (r && r.counts && Object.keys(r.counts).length ? r.counts : (tallyOf(d, 'chaat') || {}).counts) || {};
+      items('chaat').filter(i => /pani puri|masala puri/i.test(i.name)).forEach(i => { sold += Number(c[i.id]) || 0; });
+    });
+    out.chaat = {expected, sold, diff: expected - sold, days: u.days};
+  }
+  out.cig = {needs: 'the list of cigarette brands with box price, sticks per box and selling price'};
+  return out;
+}
+
+// ---------- closing the day (P0-7, P1-1) ----------
+const closeOf = d => get('close:' + d);
+function firstActivity() {
+  return cached('first', () => ['sale', 'close', 'att', 'expense'].map(k => all(k).map(r => r.date).sort()[0]).filter(Boolean).sort()[0] || today());
+}
+/** The day the "Close the day" flow should open on: the oldest of the last 2 days not closed yet, else today. */
+function closingDay() {
+  const t = today(), first = firstActivity();
+  for (let i = 2; i >= 1; i--) {
+    const d = addDays(t, -i);
+    if (d >= first && openShops(d).length && !(closeOf(d) || {}).done) return d;
+  }
+  return t;
+}
+const minutesOf = hhmm => { const [h, m] = String(hhmm || '0:0').split(':').map(Number); return (h || 0) * 60 + (m || 0); };
+/** True once a shop's closing time has passed on business day `date` (closing before 4 am counts as the next calendar day). */
+function pastClosing(shop, date) {
+  const t = today();
+  if (date < t) return true;
+  if (date > t) return false;
+  const start = dayStartMin(), now = new Date(), nowMin = now.getHours() * 60 + now.getMinutes();
+  const rel = m => (m - start + 1440) % 1440;
+  return rel(nowMin) >= rel(minutesOf(shopSet(shop).close || '23:00'));
 }
 
 /* Small UI kit shared by every screen. */
@@ -724,6 +1172,8 @@ const ICONS = {
   sales: 'M4 5h16v14H4zM8 9h8M8 13h5',
   spend: 'M12 3v18M16.5 7.5c0-1.7-2-3-4.5-3s-4.5 1.3-4.5 3 2 2.6 4.5 3 4.5 1.4 4.5 3.2-2 3-4.5 3-4.5-1.3-4.5-3',
   stock: 'M4 8l8-4 8 4-8 4-8-4zM4 8v8l8 4 8-4V8M12 12v8',
+  close: 'M9 6.5h11M9 12h11M9 17.5h11M3.5 6.5l1.5 1.5 2.5-3M3.5 12l1.5 1.5 2.5-3M3.5 17.5l1.5 1.5 2.5-3',
+  reports: 'M5 20V11M12 20V5M19 20v-6M3 20h18',
   more: 'M5 12h.01M12 12h.01M19 12h.01'
 };
 const icon = name => {
@@ -809,7 +1259,7 @@ function dateBar(onChange) {
   inp.addEventListener('change', () => { if (inp.value) { curDate = inp.value; onChange(); } });
   return h('div', {class: 'datebar'},
     h('button', {type: 'button', class: 'iconbtn', 'aria-label': 'Previous day', onclick: () => { curDate = addDays(curDate, -1); onChange(); }}, '‹'),
-    h('div', {class: 'date'}, dateLabel(curDate), inp),
+    h('div', {class: 'date'}, ['Today', 'Yesterday'].includes(dateLabel(curDate)) ? `${dateLabel(curDate)} · ${longDate(curDate)}` : dateLabel(curDate), inp),
     h('button', {type: 'button', class: 'iconbtn', 'aria-label': 'Next day', disabled: curDate >= today(), onclick: () => { curDate = addDays(curDate, 1); onChange(); }}, '›'));
 }
 function tile(label, value, sub, cls) {
@@ -826,11 +1276,36 @@ function bars(rows, fmt) {
     h('span', {class: 'bar__t'}, h('span', {class: 'bar__f' + (r.c ? ' bar__f--' + r.c : ''), style: `width:${Math.max(2, r.v / max * 100)}%`})),
     h('span', {class: 'bar__v'}, fmt ? fmt(r.v) : r.v))));
 }
+// Column chart. Bar heights are set in px from a fixed chart height, so they never collapse (P0-8).
+const CHART_PX = 120;
 function columns(rows) {
   const max = Math.max(1, ...rows.map(r => r.v));
   return h('div', {class: 'cols', role: 'img', 'aria-label': rows.map(r => `${r.l}: ${rs(r.v)}`).join(', ')},
-    rows.map(r => h('div', {class: 'col', title: `${r.l}: ${rs(r.v)}`}, h('div', {class: 'col__f' + (r.now ? ' col__f--now' : ''), style: `height:${Math.max(1, r.v / max * 100)}%`}), h('span', {class: 'col__l'}, r.s || r.l))));
+    rows.map(r => h('div', {class: 'col', title: `${r.l}: ${rs(r.v)}`},
+      h('div', {class: 'col__f' + (r.now ? ' col__f--now' : ''), style: `height:${Math.max(2, Math.round(Math.max(0, r.v) / max * CHART_PX))}px`}),
+      h('span', {class: 'col__l'}, r.s || r.l))));
 }
+/** A big step-by-step header ("Closing: Tue 17 Nov"). */
+function bigDate(prefix, date) { return h('div', {class: 'bigdate'}, h('span', {class: 'muted small'}, prefix), h('div', {}, longDate(date))); }
+/** Take a photo with the camera and shrink it (square, for item pictures). */
+function takePhoto(size, onDone) {
+  const inp = h('input', {type: 'file', accept: 'image/*', capture: 'environment', hidden: true});
+  inp.addEventListener('change', () => {
+    const f = inp.files[0]; if (!f) return;
+    const url = URL.createObjectURL(f), img = new Image();
+    img.onload = () => {
+      const s = Math.min(img.width, img.height), c = document.createElement('canvas');
+      c.width = c.height = size;
+      c.getContext('2d').drawImage(img, (img.width - s) / 2, (img.height - s) / 2, s, s, 0, 0, size, size);
+      URL.revokeObjectURL(url); inp.remove();
+      onDone(c.toDataURL('image/jpeg', 0.7));
+    };
+    img.src = url;
+  });
+  document.body.append(inp); inp.click();
+}
+/** An item's picture: the owner's photo if there is one, else its emoji. */
+const itemPic = (it, cls) => it.photo ? h('img', {class: cls || 'item__img', src: it.photo, alt: ''}) : h('span', {class: 'item__ico', 'aria-hidden': 'true'}, it.icon || '•');
 function shareText(text) {
   const url = 'https://wa.me/?text=' + encodeURIComponent(text);
   if (navigator.share) navigator.share({text}).catch(() => {}); else window.open(url, '_blank');
@@ -840,7 +1315,7 @@ function downloadFile(name, text, type) {
   document.body.append(a); a.click(); a.remove();
 }
 
-/* Home: today at a glance (questionnaire L3 order), alerts, tomorrow's prep, last 7 days. */
+/* Home: today at a glance (questionnaire L3 order), alerts, Close the day, tomorrow's prep, last 7 days. */
 function screenHome(view) {
   const t = today();
   const showMoney = can('profit');
@@ -849,197 +1324,360 @@ function screenHome(view) {
 
   // Alerts first, so anything that needs action is seen.
   const alerts = [];
-  SHOP_KEYS.filter(s => inShop(s, curShop)).forEach(s => {
-    if (!saleOf(t, s) && new Date().getHours() >= 21) alerts.push(['warn', `Today's sales for ${shopName(s)} are not entered yet.`, () => { curShop = s; go('sales'); }]);
+  const cd = closingDay();
+  if (cd < t) alerts.push(['warn', `${longDate(cd)} is not closed yet.`, () => go('close')]);
+  SHOP_KEYS.filter(s => inShop(s, curShop) && isOpen(s, t)).forEach(s => {
+    if (!saleTotals(t, s).entered && pastClosing(s, t)) alerts.push(['warn', `${shopName(s)} shop has closed. Today's money is not entered yet.`, () => go('close')]);
   });
-  if (d.entered && Math.abs(d.gap) >= 50) alerts.push([d.gap < 0 ? 'bad' : 'warn', `Money received is ${rs(Math.abs(d.gap))} ${d.gap < 0 ? 'less' : 'more'} than the items sold today.`, () => go('sales')]);
-  const low = stockItems().filter(s => inShop(s.shop === 'both' ? curShop : s.shop, curShop) || curShop === 'both').map(s => ({s, l: stockLevel(s)})).filter(x => x.l.low);
+  if (d.counted && Math.abs(d.gap) >= 50) alerts.push([d.gap < 0 ? 'bad' : 'warn', `Money received is ${rs(Math.abs(d.gap))} ${d.gap < 0 ? 'less' : 'more'} than the items counted today.`, () => { curDate = t; go('sales'); }]);
+  suppliers().filter(sup => inShop(sup.shop || 'tea', curShop)).forEach(sup => {
+    const b = supplierBalance(sup);
+    if (b.balance < 0) alerts.push(['bad', `${sup.name}: you owe ${rs(-b.balance)}.`, () => go('spend')]);
+    else if (b.days != null && b.paid && b.days < 2) alerts.push(['warn', `${sup.name} advance left ${rs(b.balance)}, about ${Math.max(0, Math.floor(b.days))} day${Math.floor(b.days) === 1 ? '' : 's'}.`, () => go('spend')]);
+  });
+  const low = stockItems().filter(s => s.shop === 'both' || inShop(s.shop, curShop)).map(s => ({s, l: stockLevel(s)})).filter(x => x.l.low);
   if (low.length) alerts.push(['warn', `Low stock: ${low.map(x => x.s.name).join(', ')}`, () => go('stock')]);
   gasForecast().filter(g => g.next && g.next <= addDays(t, 1)).forEach(g => alerts.push(['warn', `${g.counter} gas cylinder likely runs out ${dateLabel(g.next).toLowerCase()}.`, () => go('stock')]));
   alerts.forEach(([kind, text, fn]) => view.append(h('button', {type: 'button', class: 'alert card--tap' + (kind === 'bad' ? ' alert--bad' : ''), onclick: fn}, h('span', {}, kind === 'bad' ? '⚠️' : '🔔'), h('span', {class: 'grow'}, text))));
 
+  // Profit is never shown for a single day, because purchases land on the day they are bought (P0-1).
+  const pt = showMoney ? profitTrend(t, curShop) : null;
+  const spent = cashSpent(t, curShop);
   view.append(h('div', {class: 'tiles'},
     tile("Today's sales", rs(d.sales), h('span', {}, 'vs yesterday ', change(d.sales, y.sales) || '–', ' · last ' + DOW[parseD(t).getDay()] + ' ', change(d.sales, w.sales) || '–'), 'tile--wide tile--hero'),
-    // Profit only means something once sales are in; until then show what the day must cover.
-    showMoney ? (d.sales
-      ? tile("Today's profit", rs(d.profit), `after rent & bills ${rs(d.fixed)}` + (d.spend + d.wages ? `, spending & wages ${rs(d.spend + d.wages)}` : ''))
-      : tile("Today's profit", '—', `Enter sales first. Rent & bills to cover today: ${rs(d.fixed)}`)) : null,
+    showMoney ? tile('Profit, 7-day average', pt ? rs(pt.avg) + ' a day' : '—', pt ? `Month so far ${rs(pt.month)}` + (pt.upto !== t ? ` (to ${dateLabel(pt.upto).toLowerCase()})` : '') : 'Shows once sales are entered') : null,
+    showMoney ? tile('Spent today', rs(spent.total), spent.total ? `buying ${rs(spent.purchases)} · wages ${rs(spent.wages)}` : 'nothing yet') : null,
     tile('Cash received', rs(d.cash), d.entered ? 'from sales entry' : 'not entered yet'),
-    tile('UPI received', rs(d.upi), d.cash + d.upi ? Math.round(d.upi / (d.cash + d.upi) * 100) + '% of money in' : ''),
-    showMoney ? null : tile('Items sold', String(d.units))));
+    tile('UPI received', rs(d.upi), d.cash + d.upi ? Math.round(d.upi / (d.cash + d.upi) * 100) + '% of money in' : '')));
 
   view.append(h('div', {class: 'grid2'},
-    h('button', {type: 'button', class: 'btn btn--primary btn--big', onclick: () => { curDate = t; go('sales'); }}, '+ Sales'),
-    h('button', {type: 'button', class: 'btn btn--soft btn--big', onclick: () => { curDate = t; go('spend'); }}, '+ Expense')));
+    h('button', {type: 'button', class: 'btn btn--primary btn--big', onclick: () => go('close')}, cd < t ? `Close ${DOW[parseD(cd).getDay()]} ${parseD(cd).getDate()}` : 'Close the day'),
+    h('button', {type: 'button', class: 'btn btn--soft btn--big', onclick: () => { curDate = t; expenseForm(null, {date: t}); }}, '+ Expense')));
 
-  // Day tags (rain, holiday...) improve predictions (K7).
-  const tag = get('tag:' + t) || {id: 'tag:' + t, kind: 'tag', date: t, tags: []};
-  const tagWrap = h('div', {class: 'chips'});
-  const drawTags = () => {
-    tagWrap.innerHTML = '';
-    DAY_TAGS.forEach(k => tagWrap.append(h('button', {type: 'button', class: 'chip', 'aria-pressed': String(tag.tags.includes(k)), onclick: () => {
-      tag.tags = tag.tags.includes(k) ? tag.tags.filter(x => x !== k) : tag.tags.concat([k]);
-      save(tag); drawTags();
-    }}, k)));
-  };
-  drawTags();
-  view.append(h('div', {class: 'card'}, h('p', {class: 'eyebrow'}, 'Anything unusual today?'), tagWrap));
+  const tp = showMoney ? targetProgress(t, curShop) : null;
+  if (tp) view.append(h('div', {class: 'card'}, h('div', {class: 'row row--between'}, h('p', {class: 'eyebrow'}, 'Monthly target'), h('span', {class: 'small muted'}, `${rs(tp.sales)} of ${rs(tp.target)}`)),
+    h('div', {class: 'bar__t', style: 'margin:8px 0'}, h('div', {class: 'bar__f', style: `width:${Math.max(1, Math.min(100, tp.pct))}%`})),
+    h('p', {class: 'small muted'}, tp.pct >= 100 ? 'Target reached ✓' : `${rs(tp.needPerDay)} a day needed for the ${tp.daysLeft} day${tp.daysLeft === 1 ? '' : 's'} left`)));
 
   // Tomorrow: expected sales and what to prepare (K5).
   const tm = addDays(t, 1);
   const fc = forecast(tm, curShop), prep = prepPlan(tm);
   const prepRows = [];
-  if (inShop('tea', curShop) && prep.cups) prepRows.push(['Tea/coffee cups', String(prep.cups)], ['Milk to buy', qty(prep.milkL.toFixed(1)) + ' L'], ['Tea powder', qty(prep.teaKg.toFixed(2)) + ' kg']);
-  if (inShop('chaat', curShop) && prep.paniPlates) prepRows.push(['Pani puri plates', String(prep.paniPlates)], ['Puri packets', qty(prep.puriPackets.toFixed(1))]);
+  if (inShop('tea', curShop) && prep.milk) prepRows.push([`Tell ${prep.milk.vendor.toLowerCase()}`, `${qty(prep.milk.order)} ${prep.milk.unit}`]);
+  if (inShop('chaat', curShop) && prep.puris) prepRows.push(['Pani + masala puri plates', String(prep.puris.plates)], ['Puris', prep.puris.buckets != null ? `${prep.puris.puris} (${qty(Math.ceil(prep.puris.buckets * 10) / 10)} buckets)` : String(prep.puris.puris)]);
   view.append(h('div', {class: 'card'},
-    h('div', {class: 'row row--between'}, h('p', {class: 'eyebrow'}, `Tomorrow · ${dateLabel(tm) === 'Tomorrow' ? DOW[parseD(tm).getDay()] : dateLabel(tm)}`), h('button', {type: 'button', class: 'link', onclick: () => go('reports')}, 'More')),
-    fc.hasData
-      ? [h('div', {class: 'tile__v'}, rs(fc.sales)), h('p', {class: 'muted small'}, 'Expected sales, from the same weekday in recent weeks'),
-        prepRows.length ? h('table', {class: 't'}, prepRows.map(([a, b]) => h('tr', {}, h('td', {}, a), h('td', {class: 'r'}, b)))) : null]
-      : h('p', {class: 'muted'}, 'Predictions start after a few days of sales entries.')));
+    h('div', {class: 'row row--between'}, h('p', {class: 'eyebrow'}, `Tomorrow · ${DOW[parseD(tm).getDay()]}`), showMoney ? h('button', {type: 'button', class: 'link', onclick: () => go('reports')}, 'More') : null),
+    fc.hasData ? [h('div', {class: 'tile__v'}, rs(fc.sales)), h('p', {class: 'muted small'}, 'Expected sales, from the same weekday in recent weeks (rainy days and holidays left out)')]
+      : h('p', {class: 'muted'}, 'Predictions start after a few days of sales entries.'),
+    prepRows.length ? h('table', {class: 't'}, prepRows.map(([a, b]) => h('tr', {}, h('td', {}, a), h('td', {class: 'r'}, b)))) : null));
 
   // Last 7 days.
-  const days = range(addDays(t, -6), t).map(dd => ({l: dd, s: DOW[parseD(dd).getDay()].slice(0, 2), v: daySummary(dd, curShop).sales, now: dd === t}));
+  const days = range(addDays(t, -6), t).map(dd => ({l: dateLabel(dd), s: DOW[parseD(dd).getDay()].slice(0, 2), v: daySummary(dd, curShop).sales, now: dd === t}));
   view.append(h('div', {class: 'card'}, h('p', {class: 'eyebrow'}, 'Sales, last 7 days'), columns(days),
-    h('p', {class: 'muted small', style: 'margin-top:6px'}, `Total ${rs(days.reduce((a, x) => a + x.v, 0))}`)));
+    h('p', {class: 'muted small', style: 'margin-top:6px'}, `Total ${rs(sumBy(days, x => x.v))}`)));
 }
 
-/* Sales entry at closing: tap +/- per item, then money received (cash + UPI). Saves as you tap. */
-function screenSales(view) {
-  view.classList.add('view--sum');
-  view.append(shopSwitch(() => go('sales'), {noBoth: true}));
-  view.append(dateBar(() => go('sales')));
-  const shop = curShop, date = curDate;
-  const id = saleId(date, shop);
-  const rec = Object.assign({id, kind: 'sale', date, shop, counts: {}, prices: {}, cash: '', upi: '', unpaid: ''}, saleOf(date, shop) || {});
-  rec.counts = Object.assign({}, rec.counts); rec.prices = Object.assign({}, rec.prices);
-  let saveT = null;
-  const persist = () => { clearTimeout(saveT); saveT = setTimeout(() => save(rec), 400); };
-  const list = items(shop);
-  const priceOf = it => rec.prices[it.id] != null ? rec.prices[it.id] : it.price;
+/* Sales entry: money received (cash + UPI) per shop, plus item counts for shops set to "Money + items" (P1-2).
+   The pieces here are reused by the Close-the-day flow. */
+function saleRecord(date, shop) {
+  const r = Object.assign({id: saleId(date, shop), kind: 'sale', date, shop, counts: {}, prices: {}, cash: '', upi: '', unpaid: '', short: ''}, saleOf(date, shop) || {});
+  r.counts = Object.assign({}, r.counts); r.prices = Object.assign({}, r.prices);
+  return r;
+}
+/** If nothing was counted yet, start from the chaat counter's live tally (P1-3). Returns true if it did. */
+function prefillFromTally(rec) {
+  if (Object.keys(rec.counts).length) return false;
+  const t = tallyOf(rec.date, rec.shop);
+  if (!t || !t.counts || !Object.keys(t.counts).length) return false;
+  Object.keys(t.counts).forEach(id => { const it = get(id); if (!it || !(t.counts[id] > 0)) return; rec.counts[id] = t.counts[id]; rec.prices[id] = it.price; });
+  return Object.keys(rec.counts).length > 0;
+}
+const priceIn = (rec, it) => rec.prices[it.id] != null ? Number(rec.prices[it.id]) : Number(it.price) || 0;
+const countsValue = (rec, shop) => sumBy(items(shop), it => (Number(rec.counts[it.id]) || 0) * priceIn(rec, it));
 
-  const totalEl = h('b', {}, rs(0)), gapEl = h('span', {class: 'small'});
-  const upd = () => {
-    let total = 0;
-    list.forEach(it => { total += (Number(rec.counts[it.id]) || 0) * priceOf(it); });
-    const got = (Number(rec.cash) || 0) + (Number(rec.upi) || 0);
-    totalEl.textContent = rs(total);
-    if (!got) { gapEl.className = 'small muted'; gapEl.textContent = 'from items sold'; }
-    else {
-      const gap = got - total;
-      gapEl.className = 'small ' + (Math.abs(gap) < 20 ? 'up' : 'down');
-      gapEl.textContent = Math.abs(gap) < 1 ? 'matches money received ✓' : `received ${rs(got)} (${gap > 0 ? '+' : '−'}${rs(Math.abs(gap))})`;
-    }
-  };
-
-  if (!list.length) view.append(h('div', {class: 'empty'}, 'No items yet. Add your menu in More → Menu and prices.'));
+/** Item counter grid (tap + / −, or type). */
+function itemGrid(rec, shop, onChange) {
   const grid = h('div', {class: 'items'});
+  const list = items(shop);
+  if (!list.length) return h('div', {class: 'empty'}, 'No items yet. Add your menu in More → Menu and prices.');
   list.forEach(it => {
     const card = h('div', {class: 'item'});
     const inp = h('input', {type: 'text', inputmode: 'numeric', value: rec.counts[it.id] || '', placeholder: '0', 'aria-label': it.name + ' count'});
     const set = n => {
       n = Math.max(0, Math.round(Number(n) || 0));
-      if (n) { rec.counts[it.id] = n; rec.prices[it.id] = it.price; } else { delete rec.counts[it.id]; delete rec.prices[it.id]; }
+      if (n) { rec.counts[it.id] = n; if (rec.prices[it.id] == null) rec.prices[it.id] = Number(it.price) || 0; }
+      else { delete rec.counts[it.id]; delete rec.prices[it.id]; }
       inp.value = n || '';
       card.classList.toggle('item--on', n > 0);
-      persist(); upd();
+      onChange();
     };
     inp.addEventListener('input', () => set(inp.value.replace(/\D/g, '')));
     card.classList.toggle('item--on', (rec.counts[it.id] || 0) > 0);
     card.append(
-      h('div', {class: 'item__top'}, h('span', {class: 'item__ico', 'aria-hidden': 'true'}, it.icon || '•'),
+      h('div', {class: 'item__top'}, itemPic(it),
         h('div', {class: 'grow'}, h('div', {class: 'item__name'}, it.name),
-          h('div', {class: 'item__price'}, it.price ? rs(priceOf(it)) : h('span', {class: 'down'}, 'price not set')))),
+          h('div', {class: 'item__price'}, it.price ? rs(priceIn(rec, it)) : h('span', {class: 'down'}, 'price not set')))),
       h('div', {class: 'ctr'},
         h('button', {type: 'button', 'aria-label': 'One less ' + it.name, onclick: () => set((Number(rec.counts[it.id]) || 0) - 1)}, '−'),
         inp,
         h('button', {type: 'button', class: 'plus', 'aria-label': 'One more ' + it.name, onclick: () => set((Number(rec.counts[it.id]) || 0) + 1)}, '+')));
     grid.append(card);
   });
-  view.append(h('p', {class: 'eyebrow', style: 'margin-top:10px'}, 'Items sold'), grid);
-
-  view.append(h('h3', {class: 'h3'}, 'Money received'),
-    h('div', {class: 'grid2'},
-      field('Cash', moneyIn(rec.cash, v => { rec.cash = v; persist(); upd(); })),
-      field('UPI', moneyIn(rec.upi, v => { rec.upi = v; persist(); upd(); }))),
-    field('Left without paying / change short (optional)', moneyIn(rec.unpaid, v => { rec.unpaid = v; persist(); })),
-    field('Note (optional)', textIn(rec.note, v => { rec.note = v; persist(); }, {placeholder: 'e.g. rain from 6 pm'})));
-
-  if (saleOf(date, shop)) view.append(h('button', {type: 'button', class: 'link', onclick: () => confirmSheet('Clear this day?', `This removes the ${shopName(shop)} sales entry for ${dateLabel(date).toLowerCase()}.`, 'Clear sales entry', () => { remove(id); toast('Sales entry cleared'); go('sales'); })}, 'Clear this day'));
-
-  const bar = h('div', {class: 'sumbar'}, h('div', {class: 'sumbar__in'},
-    h('div', {class: 'grow'}, h('div', {class: 'small muted'}, `${shopName(shop)} · ${dateLabel(date)}`), h('div', {}, totalEl, ' ', gapEl)),
-    h('button', {type: 'button', class: 'btn btn--primary', onclick: () => { clearTimeout(saveT); save(rec); toast('Saved'); }}, 'Save')));
-  view.append(bar);
-  upd();
+  return grid;
 }
 
-/* Expenses and purchases. A purchase can add quantity to a stock item; gas entries feed refill predictions. */
+/** Cash + UPI, and the two optional loss fields (P3-6). */
+function moneyFields(rec, onChange, opts) {
+  return h('div', {},
+    h('div', {class: 'grid2'},
+      field('Cash', moneyIn(rec.cash, v => { rec.cash = v; onChange(); })),
+      field('UPI', moneyIn(rec.upi, v => { rec.upi = v; onChange(); }))),
+    opts && opts.brief ? null : h('div', {class: 'grid2'},
+      field('Left without paying', moneyIn(rec.unpaid, v => { rec.unpaid = v; onChange(); })),
+      field('Change short', moneyIn(rec.short, v => { rec.short = v; onChange(); }))),
+    opts && opts.brief ? null : field('Note (optional)', textIn(rec.note, v => { rec.note = v; onChange(); }, {placeholder: 'e.g. rain from 6 pm'})));
+}
+/** "₹X from items · received ₹Y (+₹Z)": only when both counts and money are in (P0-3). */
+function gapText(rec, shop) {
+  const value = countsValue(rec, shop), got = (Number(rec.cash) || 0) + (Number(rec.upi) || 0);
+  if (!value) return {text: got ? `${rs(got)} received` : 'nothing entered yet', cls: 'muted'};
+  if (!got) return {text: `${rs(value)} from items · money not entered`, cls: 'muted'};
+  const gap = got - value;
+  return {text: Math.abs(gap) < 1 ? `${rs(value)} from items · matches money ✓` : `${rs(value)} from items · received ${rs(got)} (${gap > 0 ? '+' : '−'}${rs(Math.abs(gap))})`, cls: Math.abs(gap) < 20 ? 'up' : 'down'};
+}
+
+function screenSales(view) {
+  view.classList.add('view--sum');
+  view.append(shopSwitch(() => go('sales'), {noBoth: true}));
+  view.append(dateBar(() => go('sales')));
+  const shop = curShop, date = curDate;
+  const rec = saleRecord(date, shop);
+  let saveT = null;
+  const sumEl = h('span', {class: 'small'});
+  const upd = () => { const g = gapText(rec, shop); sumEl.className = 'small ' + g.cls; sumEl.textContent = g.text; };
+  const persist = () => { clearTimeout(saveT); saveT = setTimeout(() => save(rec), 400); upd(); };
+
+  view.append(h('p', {class: 'muted small'}, 'Read UPI from the soundbox or the merchant app total.'), moneyFields(rec, persist));
+  const showItems = salesMode(shop) === 'items' || Object.keys(rec.counts).length > 0;
+  if (showItems) {
+    const fromTally = prefillFromTally(rec);
+    view.append(h('h3', {class: 'h3'}, 'Items sold'),
+      fromTally ? h('p', {class: 'small muted'}, 'Counts from the counter tally. Change any that are wrong.') : null,
+      itemGrid(rec, shop, persist));
+  } else {
+    view.append(h('p', {class: 'small muted', style: 'margin-top:10px'}, `${shopName(shop)} is set to money only. `,
+      can('setup') ? h('button', {type: 'button', class: 'link', onclick: () => setSalesMode(shop, 'items')}, 'Count items too') : null));
+  }
+  if (saleOf(date, shop)) view.append(h('button', {type: 'button', class: 'link', onclick: () => confirmSheet('Clear this day?', `This removes the ${shopName(shop)} sales entry for ${dateLabel(date).toLowerCase()}.`, 'Clear sales entry', () => { remove(rec.id); toast('Sales entry cleared'); go('sales'); })}, 'Clear this day'));
+
+  view.append(h('div', {class: 'sumbar'}, h('div', {class: 'sumbar__in'},
+    h('div', {class: 'grow'}, h('div', {class: 'small muted'}, `${shopName(shop)} · ${dateLabel(date)}`), sumEl),
+    h('button', {type: 'button', class: 'btn btn--primary', onclick: () => { clearTimeout(saveT); save(rec); toast('Saved'); }}, 'Save'))));
+  upd();
+}
+function setSalesMode(shop, mode) {
+  const s = JSON.parse(JSON.stringify(settings()));
+  s.shops[shop].salesMode = mode;
+  save(s); go(route);
+}
+
+/* Expenses and purchases, supplier accounts (milk paid in advance) and petty cash given to workers. */
 function screenSpend(view) {
   view.append(shopSwitch(() => go('spend')));
   view.append(dateBar(() => go('spend')));
-  const list = expensesOn(curDate, curShop).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
-  const total = list.reduce((a, e) => a + (Number(e.amount) || 0) * share(e.shop, curShop), 0);
+  const date = curDate;
+  suppliers().forEach(sup => view.append(supplierCard(sup, date)));
   view.append(h('button', {type: 'button', class: 'btn btn--primary btn--big btn--block', onclick: () => expenseForm(null)}, '+ Add expense or purchase'));
-  view.append(h('div', {class: 'row row--between', style: 'margin:16px 0 8px'}, h('p', {class: 'eyebrow'}, `${dateLabel(curDate)} · ${list.length} entr${list.length === 1 ? 'y' : 'ies'}`), h('b', {class: 'num'}, rs(total))));
+  const rep = repeatList(date, () => go('spend'));
+  if (rep) view.append(rep);
+  const list = onDate('expense', date).filter(e => share(e.shop, curShop, date) > 0).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+  const total = sumBy(list, e => (Number(e.amount) || 0) * share(e.shop, curShop, date));
+  view.append(h('div', {class: 'row row--between', style: 'margin:16px 0 8px'}, h('p', {class: 'eyebrow'}, `${dateLabel(date)} · ${list.length} entr${list.length === 1 ? 'y' : 'ies'}`), h('b', {class: 'num'}, rs(total))));
   if (!list.length) view.append(h('div', {class: 'empty'}, 'Nothing spent on this day yet.'));
-  view.append(h('div', {class: 'list'}, list.map(e => {
-    const c = catOf(e.cat), st = e.stock ? get(e.stock) : null;
-    const sub = [shopName(e.shop), e.pay === 'cash' ? 'cash' : e.pay === 'upi' ? 'UPI' : 'own pocket'];
+  view.append(expenseList(list));
+  view.append(pettyCard());
+}
+function payLabel(e) {
+  if (e.pay === 'cash') return `${shopName(boxOf(e))} box`;
+  if (e.pay === 'upi') return 'UPI';
+  if (e.pay === 'petty') { const w = get(e.worker); return `${w ? w.name : 'worker'}'s petty cash`; }
+  return 'own pocket';
+}
+function expenseList(list) {
+  return h('div', {class: 'list'}, list.map(e => {
+    const c = catOf(e.cat), st = e.stock ? get(e.stock) : null, sup = e.supplier ? get(e.supplier) : null;
+    const sub = [shopName(e.shop), payLabel(e)];
     if (st && e.qty) sub.push(`${qty(e.qty)} ${st.unit} ${st.name}`);
     if (e.counter) sub.push(e.counter + ' counter');
+    if (sup) sub.push(sup.name);
     if (c.fixed) sub.push('already in daily running costs');
     if (c.owner) sub.push('not a business cost');
+    if (c.advance) sub.push('advance, counted as goods arrive');
     return h('button', {type: 'button', class: 'li', onclick: () => expenseForm(e)},
       h('span', {class: 'li__ico'}, c.i), h('span', {class: 'li__main'}, h('div', {class: 'li__t'}, e.note ? `${e.cat}: ${e.note}` : e.cat), h('div', {class: 'li__s'}, sub.join(' · '), e.photo ? ' · 📷' : '')),
       h('span', {class: 'li__v'}, rs(e.amount)));
-  })));
+  }));
 }
 
-function expenseForm(existing) {
-  const e = Object.assign({kind: 'expense', date: curDate, shop: curShop === 'both' ? 'shared' : curShop, pay: 'upi', cat: 'Milk', amount: ''}, existing || {});
+// ---------- "Repeat yesterday" (P1-5) ----------
+function repeatables(date) {
+  const now = onDate('expense', date);
+  const key = e => [e.cat, e.note || '', e.shop].join('|');
+  const have = new Set(now.map(key));
+  return onDate('expense', addDays(date, -1)).filter(e => { const c = catOf(e.cat); return !c.fixed && !c.owner && !c.advance && !c.gas && !have.has(key(e)); });
+}
+function copyExpense(e, date) {
+  const c = Object.assign({}, e, {id: undefined, date});
+  ['photo', 'updatedAt', 'by', 'seq', '_dirty', '_orig'].forEach(k => delete c[k]);
+  if (c.pay === 'petty' && pettyBalance(c.worker) < Number(c.amount)) { c.pay = 'cash'; delete c.worker; }
+  return save(c);
+}
+function repeatList(date, redraw) {
+  const rep = repeatables(date);
+  if (!rep.length) return null;
+  return h('div', {class: 'card'}, h('p', {class: 'eyebrow'}, 'Same as yesterday? Tap to add'),
+    h('div', {class: 'chips'}, rep.map(e => h('button', {type: 'button', class: 'chip', onclick: () => { copyExpense(e, date); toast(`${e.cat} ${rs(e.amount)} added`); redraw(); }},
+      `${catOf(e.cat).i} ${e.note || e.cat} ${rs(e.amount)}`))),
+    rep.length > 1 ? h('button', {type: 'button', class: 'link', onclick: () => { rep.forEach(e => copyExpense(e, date)); toast(`${rep.length} entries added`); redraw(); }}, 'Add all') : null);
+}
+
+// ---------- suppliers paid in advance (P0-2) ----------
+function supplierCard(sup, date) {
+  const b = supplierBalance(sup), d = get(deliveryId(date, sup.id));
+  const prev = all('delivery').filter(x => x.supplier === sup.id && x.date < date).sort((a, c) => a.date < c.date ? 1 : -1)[0];
+  const usual = (prev && prev.qty) || Number(sup.usual) || 0;
+  const days = b.days != null ? Math.floor(b.days) : null;
+  const status = b.balance >= 0 ? `Advance left ${rs(b.balance)}` + (days != null ? ` · about ${days} day${days === 1 ? '' : 's'}` : '') : `You owe ${rs(-b.balance)}`;
+  return h('div', {class: 'card'},
+    h('div', {class: 'row row--between'}, h('p', {class: 'eyebrow'}, sup.name), h('span', {class: 'small ' + (b.balance < 0 || (days != null && days < 2) ? 'down' : 'muted')}, status)),
+    h('div', {class: 'grid2', style: 'margin-top:8px'},
+      d ? h('button', {type: 'button', class: 'btn btn--soft', onclick: () => deliveryForm(sup, date)}, `✓ ${qty(d.qty)} ${sup.unit} came · ${rs(d.amount)}`)
+        : h('button', {type: 'button', class: 'btn btn--primary', onclick: () => { addDelivery(sup, date, usual); toast(`${sup.name}: ${qty(usual)} ${sup.unit} recorded`, 'Change', () => deliveryForm(sup, date)); go(route); }},
+          `${(sup.cat || sup.name).split(' ')[0]} came: ${qty(usual)} ${sup.unit}`),
+      h('button', {type: 'button', class: 'btn btn--soft', onclick: () => supplierPayForm(sup, date)}, 'Pay in advance')));
+}
+function addDelivery(sup, date, q) {
+  const rate = Number(sup.rate) || 0;
+  return save({id: deliveryId(date, sup.id), kind: 'delivery', supplier: sup.id, date, qty: q, rate, amount: Math.round(q * rate), shop: sup.shop || 'tea'});
+}
+function deliveryForm(sup, date) {
+  const d = Object.assign({}, get(deliveryId(date, sup.id)) || {qty: sup.usual, rate: sup.rate});
+  sheet(`${sup.name} · ${dateLabel(date)}`, close => h('div', {},
+    h('div', {class: 'grid2'}, field(`How much came (${sup.unit})`, numIn(d.qty, v => { d.qty = v; })), field(`Price per ${sup.unit}`, moneyIn(d.rate, v => { d.rate = v; }))),
+    h('button', {type: 'button', class: 'btn btn--primary btn--big btn--block', onclick: () => { addDelivery(Object.assign({}, sup, {rate: d.rate}), date, Number(d.qty) || 0); close(); go(route); }}, 'Save'),
+    get(deliveryId(date, sup.id)) ? h('button', {type: 'button', class: 'btn btn--danger btn--block', style: 'margin-top:8px', onclick: () => { remove(deliveryId(date, sup.id)); close(); toast('Removed'); go(route); }}, 'Nothing came this day') : null));
+}
+function supplierPayForm(sup, date) {
+  expenseForm(null, {cat: 'Supplier advance', supplier: sup.id, shop: sup.shop || 'tea', date, pay: 'upi', amount: Math.round((Number(sup.usual) || 0) * (Number(sup.rate) || 0) * 10) || ''});
+}
+
+// ---------- petty cash with workers (F8a) ----------
+function pettyCard() {
+  const rows = all('worker').map(w => ({w, b: pettyBalance(w.id)})).filter(x => Math.abs(x.b) >= 1);
+  return h('div', {class: 'card'},
+    h('div', {class: 'row row--between'}, h('p', {class: 'eyebrow'}, 'Money given to workers for shopping'),
+      h('button', {type: 'button', class: 'link', onclick: () => pettyForm('give')}, '+ Give')),
+    rows.length ? h('table', {class: 't'}, rows.map(x => h('tr', {}, h('td', {}, x.w.name), h('td', {class: 'r'}, `${rs(x.b)} not returned`),
+      h('td', {class: 'r'}, h('button', {type: 'button', class: 'link', onclick: () => pettyForm('return', x.w.id, x.b)}, 'Returned')))))
+      : h('p', {class: 'muted small'}, 'Give a worker money for shopping, enter what they buy as "Paid from: petty cash", then record what they bring back.'));
+}
+function pettyForm(type, wId, amount) {
+  const ws = workers();
+  if (!ws.length) { toast('Add workers first'); return; }
+  const p = {kind: 'petty', type, worker: wId || ws[0].id, date: curDate, amount: amount ? Math.round(amount) : '', pay: 'cash', box: curShop === 'chaat' ? 'chaat' : 'tea'};
+  sheet(type === 'give' ? 'Give money for shopping' : 'Money returned', close => h('div', {},
+    field('Worker', (() => { const s = h('select', {class: 'in'}, ws.map(w => h('option', {value: w.id, selected: w.id === p.worker}, w.name))); s.onchange = () => { p.worker = s.value; }; return s; })()),
+    field('Amount', moneyIn(p.amount, v => { p.amount = v; })),
+    field(type === 'give' ? 'Paid from' : 'Put back in', seg([['tea', 'Tea box'], ['chaat', 'Chaat box']], p.box, v => { p.box = v; })),
+    h('button', {type: 'button', class: 'btn btn--primary btn--big btn--block', onclick: () => {
+      if (!(Number(p.amount) > 0)) { toast('Enter the amount'); return; }
+      save(p); close(); toast('Saved'); go(route);
+    }}, 'Save')));
+}
+
+// ---------- the expense form ----------
+function sortedCats() {
+  const used = cached('catuse', () => { const m = {}; const from = addDays(today(), -60); all('expense').filter(e => e.date >= from).forEach(e => { m[e.cat] = (m[e.cat] || 0) + 1; }); return m; });
+  return CATS.map((c, i) => ({c, i, n: used[c.k] || 0})).sort((a, b) => b.n - a.n || a.i - b.i).map(x => x.c);
+}
+function expenseForm(existing, preset) {
+  const def = curShop === 'both' ? 'shared' : curShop;
+  // Suppliers are mostly paid by UPI (F6); a cash payment says which shop's box it came from (P0-4).
+  const e = Object.assign({kind: 'expense', date: curDate, shop: def, pay: 'upi', cat: '', amount: ''}, preset || {}, existing || {});
+  if (e.pay === 'cash' && !e.box) e.box = e.shop === 'chaat' ? 'chaat' : 'tea';
+  let amountTouched = !!existing || !!(preset && preset.amount);
   sheet(existing ? 'Edit expense' : 'Add expense', close => {
     const body = h('div', {});
     const extra = h('div', {});
-    const stockSel = h('select', {class: 'in'});
+    const amountWrap = h('div', {});
+    const drawAmount = () => { amountWrap.innerHTML = ''; amountWrap.append(field('Amount', moneyIn(e.amount, v => { e.amount = v; amountTouched = true; }))); };
     const drawExtra = () => {
       extra.innerHTML = '';
+      if (!e.cat) return;
       const c = catOf(e.cat);
       if (c.gas) {
-        extra.append(field('Which counter got the new cylinder?', seg([['Tea', 'Tea'], ['Chaat', 'Chaat'], ['Bajji', 'Bajji']], e.counter || 'Tea', v => { e.counter = v; })));
-        if (!e.counter) e.counter = 'Tea';
+        const counters = [['Tea', 'Tea'], ['Chaat', 'Chaat']].concat(settings().bajjiOn ? [['Bajji', 'Bajji']] : []);
+        if (!e.counter) e.counter = e.shop === 'chaat' ? 'Chaat' : 'Tea';
+        extra.append(field('Which counter got the new cylinder?', seg(counters, e.counter, v => { e.counter = v; })));
       } else delete e.counter;
-      // Link to a stock item so purchases update stock levels.
-      stockSel.innerHTML = '';
-      stockSel.append(h('option', {value: ''}, 'Not a stock item'));
-      stockItems().forEach(s => stockSel.append(h('option', {value: s.id, selected: e.stock === s.id}, `${s.name} (${s.unit})`)));
+      if (c.advance) {
+        const sups = suppliers();
+        if (!e.supplier && sups[0]) e.supplier = sups[0].id;
+        extra.append(sups.length ? field('Which supplier', seg(sups.map(s => [s.id, s.name]), e.supplier, v => { e.supplier = v; }))
+          : h('p', {class: 'small down'}, 'Add the supplier first in More → Suppliers.'));
+        return;
+      } else delete e.supplier;
+      if (c.fixed || c.owner) { delete e.stock; return; }
+      // Linked to a stock item: type the quantity and the amount is worked out from its usual price.
+      const stockSel = h('select', {class: 'in'}, h('option', {value: ''}, 'Not a stock item'),
+        stockItems().map(s => h('option', {value: s.id, selected: e.stock === s.id}, `${s.name} (${s.unit})`)));
       if (!existing && !e.stock) {
         const guess = stockItems().find(s => s.name.toLowerCase().startsWith(String(e.cat).toLowerCase().split(' ')[0]));
-        if (guess && !c.fixed && !c.owner) { e.stock = guess.id; stockSel.value = guess.id; }
+        if (guess) { e.stock = guess.id; stockSel.value = guess.id; }
       }
-      const qtyIn = numIn(e.qty, v => { e.qty = v; }, {placeholder: 'Quantity'});
+      const qtyWrap = field('How much did you buy?', numIn(e.qty, v => {
+        e.qty = v;
+        const s = e.stock ? get(e.stock) : null;
+        if (s && Number(s.cost) && !amountTouched) { e.amount = Math.round(v * s.cost); drawAmount(); amountTouched = false; }
+      }, {placeholder: 'Quantity'}));
       stockSel.onchange = () => { e.stock = stockSel.value || undefined; qtyWrap.hidden = !e.stock; };
-      const qtyWrap = field('How much did you buy?', qtyIn);
       qtyWrap.hidden = !e.stock;
-      if (!c.fixed && !c.owner) extra.append(field('Adds to stock', stockSel), qtyWrap);
+      extra.append(field('Adds to stock', stockSel), qtyWrap);
     };
+    const payOpts = [['box:tea', 'Tea box'], ['box:chaat', 'Chaat box'], ['upi', 'UPI'], ['own', 'Own pocket']];
+    const pettyWs = all('worker').filter(w => pettyBalance(w.id) > 0 || e.worker === w.id);
+    if (pettyWs.length) payOpts.push(['petty', 'Petty cash']);
+    const pettySel = h('div', {});
+    const drawPetty = () => {
+      pettySel.innerHTML = '';
+      if (e.pay !== 'petty') return;
+      if (!e.worker && pettyWs[0]) e.worker = pettyWs[0].id;
+      pettySel.append(field('Whose petty cash', seg(pettyWs.map(w => [w.id, `${w.name} (${rs(pettyBalance(w.id))})`]), e.worker, v => { e.worker = v; })));
+    };
+    drawAmount();
     body.append(
-      field('What for?', chips(CATS.map(c => ({k: c.k, i: c.i})), e.cat, v => { e.cat = v; if (!existing) delete e.stock; drawExtra(); })),
-      field('Amount', moneyIn(e.amount, v => { e.amount = v; }, {autofocus: true})),
+      field('What for?', chips(sortedCats().map(c => ({k: c.k, i: c.i})), e.cat, v => { e.cat = v; if (!existing) delete e.stock; drawExtra(); })),
+      amountWrap,
       field('Shop', seg([['chaat', shopName('chaat')], ['tea', shopName('tea')], ['shared', 'Shared']], e.shop, v => { e.shop = v; })),
-      field('Paid by', seg([['cash', 'Cash box'], ['upi', 'UPI'], ['own', 'Own pocket']], e.pay, v => { e.pay = v; })),
+      field('Paid from', seg(payOpts, e.pay === 'cash' ? 'box:' + (e.box || 'tea') : e.pay, v => {
+        if (v.indexOf('box:') === 0) { e.pay = 'cash'; e.box = v.slice(4); } else { e.pay = v; delete e.box; }
+        if (e.pay !== 'petty') delete e.worker;
+        drawPetty();
+      })),
+      pettySel,
       extra,
       field('Date', (() => { const i = h('input', {type: 'date', class: 'in', value: e.date, max: today()}); i.onchange = () => { e.date = i.value || e.date; }; return i; })()),
       field('Note (optional)', textIn(e.note, v => { e.note = v; }, {placeholder: 'e.g. supplier name'})),
       photoPicker(e));
-    drawExtra();
+    drawExtra(); drawPetty();
     body.append(h('div', {class: 'stack', style: 'margin-top:14px'},
       h('button', {type: 'button', class: 'btn btn--primary btn--big btn--block', onclick: () => {
+        if (!e.cat) { toast('Pick what it was for'); return; }
         if (!(Number(e.amount) > 0)) { toast('Enter the amount'); return; }
-        if (!e.stock) { delete e.stock; delete e.qty; }
-        save(e); close(); toast('Expense saved'); go('spend');
+        if (catOf(e.cat).advance && !e.supplier) { toast('Pick the supplier'); return; }
+        save(e); close(); toast('Expense saved'); go(route === 'close' ? 'close' : route);
       }}, 'Save'),
-      existing ? h('button', {type: 'button', class: 'btn btn--danger btn--block', onclick: () => { remove(e.id); close(); toast('Deleted', 'Undo', () => { save(Object.assign({}, e, {deleted: 0})); go('spend'); }); go('spend'); }}, 'Delete') : null));
+      existing ? h('button', {type: 'button', class: 'btn btn--danger btn--block', onclick: () => { remove(e.id); close(); toast('Deleted', 'Undo', () => { save(Object.assign({}, e, {deleted: 0})); go(route); }); go(route); }}, 'Delete') : null));
     return body;
   });
 }
@@ -1074,7 +1712,7 @@ function shrinkPhoto(file) {
   });
 }
 
-/* Stock: closing counts, levels, usage per day, shopping list, gas refills (questionnaire G1–G6, F11, J2). */
+/* Stock: closing counts, levels, usage per day, shopping list, milk order, gas refills (questionnaire G1–G6, F11, J2). */
 function screenStock(view) {
   const t = today();
   const list = stockItems().map(s => ({s, l: stockLevel(s)}));
@@ -1083,19 +1721,16 @@ function screenStock(view) {
     counted ? '✓ Counted today · edit count' : 'Count stock at closing'));
   view.append(h('p', {class: 'muted small', style: 'margin-top:6px'}, 'Count what is left at closing. The app works out usage: opening + bought − closing.'));
 
-  // Shopping list for tomorrow: enough for 2 days, plus milk from tomorrow's expected cups.
-  const buy = [];
-  list.forEach(({s, l}) => {
-    // Pieces and packets are bought whole; weights and litres to one decimal.
-    const need = l.perDay * 2 - (l.level || 0), whole = /^(pcs|packet)$/.test(s.unit);
-    if (l.perDay && l.level != null && need > 0) buy.push([s.name, `${qty(whole ? Math.ceil(need) : Math.ceil(need * 10) / 10)} ${s.unit}`]);
-    else if (l.low && !l.perDay) buy.push([s.name, 'running low']);
-  });
+  // Milk is a standing daily order from the vendor, not a shopping-list item (P3-9).
   const prep = prepPlan(addDays(t, 1));
-  if (prep.milkL && !buy.some(b => b[0] === 'Milk')) buy.unshift(['Milk (for tomorrow)', qty(prep.milkL.toFixed(1)) + ' L']);
+  if (prep.milk) view.append(h('div', {class: 'card'}, h('p', {class: 'eyebrow'}, 'Tell the milk vendor for tomorrow'),
+    h('div', {class: 'tile__v'}, `${qty(prep.milk.order)} ${prep.milk.unit}`),
+    h('p', {class: 'muted small'}, `About ${qty(Math.round(prep.milk.need))} ${prep.milk.unit} needed` + (prep.milk.onHand ? `, ${qty(Math.round(prep.milk.onHand * 10) / 10)} ${prep.milk.unit} left from today` : '') + '.')));
+
+  const buy = shoppingList();
   view.append(h('div', {class: 'card'}, h('p', {class: 'eyebrow'}, 'Shopping list for tomorrow'),
     buy.length ? h('table', {class: 't'}, buy.map(([a, b]) => h('tr', {}, h('td', {}, a), h('td', {class: 'r'}, b))))
-      : h('p', {class: 'muted'}, 'Nothing needed yet. The list fills in after 2 days of stock counts.'),
+      : h('p', {class: 'muted'}, list.some(x => x.l.perDay) ? 'Nothing to buy: there is enough for the next 2 days.' : 'The list fills in after 2 days of stock counts.'),
     buy.length ? h('button', {type: 'button', class: 'link', onclick: () => shareText('Shopping list:\n' + buy.map(b => `• ${b[0]}: ${b[1]}`).join('\n'))}, 'Share on WhatsApp') : null));
 
   const gas = gasForecast();
@@ -1108,153 +1743,433 @@ function screenStock(view) {
     can('setup') ? h('button', {type: 'button', class: 'link', onclick: () => stockForm(null)}, '+ Add stock item') : null));
   view.append(h('div', {class: 'list'}, list.map(({s, l}) => h('button', {type: 'button', class: 'li', onclick: () => can('setup') && stockForm(s)},
     h('span', {class: 'li__main'}, h('div', {class: 'li__t'}, s.name, ' ', l.low ? h('span', {class: 'pill pill--warn'}, 'Low') : null),
-      h('div', {class: 'li__s'}, l.lastCount ? `Counted ${dateLabel(l.lastCount).toLowerCase()}` + (l.perDay ? ` · uses ${qty(l.perDay.toFixed(2))} ${s.unit}/day` : '') + (l.daysLeft != null && l.perDay ? ` · ~${Math.floor(l.daysLeft)} days left` : '') : 'Not counted yet')),
-    h('span', {class: 'li__v'}, l.level == null ? '–' : `${qty(l.level)} ${s.unit}`)))));
+      h('div', {class: 'li__s'}, l.lastCount ? `Counted ${dateLabel(l.lastCount).toLowerCase()}` + (l.perDay ? ` · uses ${stockQty(s, l.perDay)}/day` : '') + (l.daysLeft != null && l.perDay ? ` · ~${Math.floor(l.daysLeft)} day${Math.floor(l.daysLeft) === 1 ? '' : 's'} left` : '') : 'Not counted yet')),
+    h('span', {class: 'li__v'}, l.level == null ? '–' : stockQty(s, l.level))))));
 }
+const stockQty = (s, n) => s.unit === '₹' ? rs(n) : `${qty(WHOLE_UNITS.test(s.unit) ? Math.round(n) : Math.round(n * 10) / 10)} ${s.unit}`;
 
-function countForm(date) {
+/** Closing count inputs. Pieces, packets and buckets are whole numbers. */
+function countFields(rec, list) {
+  return list.map(s => {
+    const whole = WHOLE_UNITS.test(s.unit), l = stockLevel(s);
+    const label = s.unit === '₹' ? `${s.name}: value left at cost price` : `${s.name} (${s.unit})`;
+    return field(label, numIn(rec.counts[s.id], v => {
+      if (v === '') delete rec.counts[s.id]; else rec.counts[s.id] = whole ? Math.round(v) : v;
+    }, {placeholder: l.level != null ? `expected about ${stockQty(s, Math.max(0, l.level - (l.perDay || 0)))}` : 'left now', inputmode: whole || s.unit === '₹' ? 'numeric' : 'decimal'}));
+  });
+}
+function countRecord(date) {
   const rec = Object.assign({id: 'count:' + date, kind: 'count', date, counts: {}}, get('count:' + date) || {});
   rec.counts = Object.assign({}, rec.counts);
+  return rec;
+}
+function countForm(date) {
+  const rec = countRecord(date);
   sheet(`Closing count · ${dateLabel(date)}`, close => h('div', {},
     h('p', {class: 'muted small'}, 'Leave an item blank if you did not count it.'),
-    stockItems().map(s => field(`${s.name} (${s.unit})`, numIn(rec.counts[s.id], v => { if (v === '') delete rec.counts[s.id]; else rec.counts[s.id] = v; }, {placeholder: 'left now'}))),
+    countFields(rec, stockItems()),
     h('button', {type: 'button', class: 'btn btn--primary btn--big btn--block', style: 'margin-top:10px', onclick: () => { save(rec); close(); toast('Count saved'); go('stock'); }}, 'Save count')));
 }
 
 function stockForm(existing) {
-  const s = Object.assign({kind: 'stock', name: '', unit: 'kg', shop: 'both', low: '', cost: '', active: true, order: 99}, existing || {});
+  const s = Object.assign({kind: 'stock', name: '', unit: 'kg', shop: 'both', low: '', cost: '', pack: '', key: false, active: true, order: 99}, existing || {});
   sheet(existing ? 'Edit stock item' : 'New stock item', close => h('div', {},
     field('Name', textIn(s.name, v => { s.name = v; }, {placeholder: 'e.g. Sev'})),
-    field('Unit', chips(['kg', 'g', 'L', 'packet', 'pcs', 'box', 'bag'].map(k => ({k})), s.unit, v => { s.unit = v; })),
+    field('Unit', chips(['kg', 'g', 'L', 'packet', 'pcs', 'bucket', 'box', 'bag', 'tin', '₹'].map(k => ({k, l: k === '₹' ? '₹ value' : k})), s.unit, v => { s.unit = v; })),
     field('Used in', seg([['chaat', shopName('chaat')], ['tea', shopName('tea')], ['both', 'Both']], s.shop, v => { s.shop = v; })),
-    field(`Warn me when below (${s.unit})`, numIn(s.low, v => { s.low = v; })),
+    h('div', {class: 'grid2'}, field('Warn me when below', numIn(s.low, v => { s.low = v; })), field('Bought in packs of', numIn(s.pack, v => { s.pack = v; }, {placeholder: 'e.g. 1, 12, 100'}))),
     field('Usual price per unit', moneyIn(s.cost, v => { s.cost = v; })),
+    field('Count it every night when closing the day', seg([['y', 'Yes'], ['n', 'No']], s.key ? 'y' : 'n', v => { s.key = v === 'y'; })),
     h('button', {type: 'button', class: 'btn btn--primary btn--big btn--block', onclick: () => { if (!s.name.trim()) { toast('Give it a name'); return; } save(s); close(); go('stock'); }}, 'Save'),
     existing ? h('button', {type: 'button', class: 'btn btn--danger btn--block', style: 'margin-top:8px', onclick: () => { save(Object.assign({}, s, {active: false})); close(); toast('Removed'); go('stock'); }}, 'Stop tracking this item') : null));
 }
 
-/* Workers: daily attendance (present / half day / absent + overtime), payments, advances, monthly sheet. */
-function screenWorkers(view) {
-  view.append(dateBar(() => go('workers')));
-  const ws = workers();
-  const date = curDate;
+/* Workers: daily attendance (present / half day / absent + overtime), daily pay, advances, leaving and rejoining. */
+function attRecord(date) {
   const att = Object.assign({id: 'att:' + date, kind: 'att', date, marks: {}, ot: {}}, attOf(date) || {});
   att.marks = Object.assign({}, att.marks); att.ot = Object.assign({}, att.ot);
-  const showPay = can('setup');
-  if (showPay) view.append(h('button', {type: 'button', class: 'btn btn--soft btn--block', onclick: () => workerForm(null)}, '+ Add worker'));
-  if (!ws.length) { view.append(h('div', {class: 'empty', style: 'margin-top:10px'}, 'No workers yet. Add your 5 workers with their daily pay.')); return; }
-
-  const totalEl = h('b', {class: 'num'});
-  const upd = () => { totalEl.textContent = showPay ? rs(ws.reduce((a, w) => a + wageFor(w, date), 0)) : ''; };
-  view.append(h('div', {class: 'row row--between', style: 'margin:14px 0 6px'}, h('p', {class: 'eyebrow'}, `Attendance · ${dateLabel(date)}`), totalEl));
-  view.append(h('div', {class: 'list'}, ws.map(w => {
+  return att;
+}
+/** Everyone not marked yet is present (P1-4: tap only the exceptions). */
+function markAllPresent(date) {
+  const att = attRecord(date);
+  let n = 0;
+  workers().forEach(w => { if (!att.marks[w.id] && (!w.joined || w.joined <= date)) { att.marks[w.id] = 'P'; n++; } });
+  if (n) save(att);
+  return n;
+}
+/** Attendance list for one day; used by the Workers screen and the Close-the-day flow. */
+function attendanceList(date, onChange) {
+  const ws = workers(), att = attRecord(date), showPay = can('setup');
+  return h('div', {class: 'list'}, ws.map(w => {
     const bal = showPay ? workerBalance(w) : null;
-    const otIn = numIn(att.ot[w.id], v => { if (v) att.ot[w.id] = v; else delete att.ot[w.id]; save(att); upd(); }, {placeholder: '0', style: 'max-width:90px', 'aria-label': 'Overtime hours for ' + w.name});
+    const otIn = numIn(att.ot[w.id], v => { if (v) att.ot[w.id] = v; else delete att.ot[w.id]; save(att); onChange(); }, {placeholder: '0', style: 'max-width:80px', 'aria-label': 'Overtime hours for ' + w.name});
+    const paid = get(wpayId(date, w));
     return h('div', {class: 'card', style: 'margin:0'},
       h('div', {class: 'row row--between'},
         h('button', {type: 'button', class: 'link', style: 'color:var(--ink);font-size:18px', onclick: () => showPay && workerSheet(w)}, w.name),
-        bal ? h('span', {class: 'small ' + (bal.due > 0 ? 'down' : 'muted')}, bal.due > 0 ? `owed ${rs(bal.due)}` : bal.due < 0 ? `advance ${rs(-bal.due)}` : 'settled') : null),
+        bal ? h('span', {class: 'small ' + (bal.due > 0 ? 'down' : 'muted')}, paid ? `paid ${rs(paid.amount)} ✓` : bal.due > 0 ? `owed ${rs(bal.due)}` : bal.due < 0 ? `advance ${rs(-bal.due)}` : 'settled') : null),
       h('div', {class: 'small muted'}, [w.role, shopName(w.shop), showPay && w.pay ? `${rs(w.pay)}/day` : null].filter(Boolean).join(' · ')),
-      h('div', {style: 'margin-top:8px'}, seg([['P', 'Present'], ['H', 'Half day'], ['A', 'Absent']], att.marks[w.id] || '', v => { att.marks[w.id] = v; save(att); upd(); })),
+      h('div', {style: 'margin-top:8px'}, seg([['P', 'Present'], ['H', 'Half day'], ['A', 'Absent']], att.marks[w.id] || '', v => { att.marks[w.id] = v; save(att); onChange(); })),
       h('div', {class: 'row', style: 'margin-top:8px'}, h('span', {class: 'small muted grow'}, 'Overtime hours'), otIn));
-  })));
+  }));
+}
+/** "Pay everyone today's wage" with Cash / UPI. Cash comes out of each worker's own shop box. */
+function payEveryoneBar(date, onDone) {
+  const due = workers().filter(w => wageFor(w, date) > 0 && !get(wpayId(date, w)));
+  if (!can('setup') || !due.length) return null;
+  const total = sumBy(due, w => Math.round(wageFor(w, date)));
+  let pay = 'cash';
+  return h('div', {class: 'card'},
+    h('p', {class: 'eyebrow'}, `Pay today's wages · ${due.length} worker${due.length === 1 ? '' : 's'} · ${rs(total)}`),
+    seg([['cash', 'Cash (from their shop box)'], ['upi', 'UPI']], pay, v => { pay = v; }),
+    h('button', {type: 'button', class: 'btn btn--primary btn--block', style: 'margin-top:8px', onclick: () => { const m = payEveryone(date, pay); toast(`${m.length} payment${m.length === 1 ? '' : 's'} saved`); onDone(); }}, 'Pay everyone'));
+}
+
+function screenWorkers(view) {
+  view.append(dateBar(() => go('workers')));
+  const date = curDate, ws = workers(), showPay = can('setup');
+  if (showPay) view.append(h('button', {type: 'button', class: 'btn btn--soft btn--block', onclick: () => workerForm(null)}, '+ Add worker'));
+  if (!ws.length) { view.append(h('div', {class: 'empty', style: 'margin-top:10px'}, 'No workers yet. Add your workers with their daily pay.')); return; }
+  const totalEl = h('b', {class: 'num'});
+  const upd = () => { totalEl.textContent = showPay ? rs(sumBy(workers(), w => wageFor(w, date))) : ''; };
+  view.append(h('div', {class: 'row row--between', style: 'margin:14px 0 6px'}, h('p', {class: 'eyebrow'}, `Attendance · ${dateLabel(date)}`), totalEl));
+  const att = attOf(date);
+  if (ws.some(w => !(att && att.marks && att.marks[w.id]))) view.append(h('button', {type: 'button', class: 'btn btn--primary btn--block', style: 'margin-bottom:10px', onclick: () => { markAllPresent(date); go('workers'); }}, 'Everyone else present'));
+  view.append(attendanceList(date, () => { upd(); }));
+  const pb = payEveryoneBar(date, () => go('workers'));
+  if (pb) view.append(pb);
   upd();
 }
 
 function workerForm(existing) {
-  const w = Object.assign({kind: 'worker', name: '', role: 'Helper', shop: 'both', pay: '', phone: '', joined: today(), active: true}, existing || {});
+  const w = Object.assign({kind: 'worker', name: '', role: 'Helper', shop: curShop === 'chaat' ? 'chaat' : 'tea', pay: '', phone: '', joined: today(), active: true}, existing || {});
+  const former = existing ? [] : all('worker').filter(x => x.active === false);
   sheet(existing ? 'Edit worker' : 'Add worker', close => h('div', {},
+    former.length ? h('div', {class: 'card'}, h('p', {class: 'eyebrow'}, 'Coming back? Tap to bring them back with their history'),
+      h('div', {class: 'chips'}, former.map(x => h('button', {type: 'button', class: 'chip', onclick: () => {
+        save(Object.assign({}, x, {active: true, rejoined: today(), left: undefined})); close(); toast(`${x.name} is back`); go('workers');
+      }}, x.name)))) : null,
     field('Name or nickname', textIn(w.name, v => { w.name = v; })),
     field('Role', chips(['Chaat master', 'Tea master', 'Helper', 'Cleaner', 'Cashier'].map(k => ({k})), w.role, v => { w.role = v; })),
-    field('Works at', seg([['chaat', shopName('chaat')], ['tea', shopName('tea')], ['both', 'Both']], w.shop, v => { w.shop = v; })),
+    field('Works at', seg([['chaat', shopName('chaat')], ['tea', shopName('tea')]], w.shop === 'both' ? 'tea' : w.shop, v => { w.shop = v; })),
     field('Pay per day', moneyIn(w.pay, v => { w.pay = v; })),
     field('Phone (optional)', textIn(w.phone, v => { w.phone = v; }, {inputmode: 'tel'})),
     field('Joining date', (() => { const i = h('input', {type: 'date', class: 'in', value: w.joined}); i.onchange = () => { w.joined = i.value; }; return i; })()),
-    h('button', {type: 'button', class: 'btn btn--primary btn--big btn--block', onclick: () => { if (!w.name.trim()) { toast('Enter a name'); return; } save(w); close(); go('workers'); }}, 'Save'),
-    existing ? h('button', {type: 'button', class: 'btn btn--danger btn--block', style: 'margin-top:8px', onclick: () => { save(Object.assign({}, w, {active: false, left: today()})); close(); toast(`${w.name} marked as left`); go('workers'); }}, 'Worker has left') : null));
+    h('button', {type: 'button', class: 'btn btn--primary btn--big btn--block', onclick: () => { if (!w.name.trim()) { toast('Enter a name'); return; } if (w.shop === 'both') w.shop = 'tea'; save(w); close(); go('workers'); }}, 'Save'),
+    existing ? h('button', {type: 'button', class: 'btn btn--danger btn--block', style: 'margin-top:8px', onclick: () => { close(); leaveSheet(existing); }}, 'Worker has left') : null));
+}
+/** Leaving: settle what is owed or the advance outstanding, then mark as left (P1-4). */
+function leaveSheet(w) {
+  const bal = workerBalance(w), t = today();
+  const done = msg => { save(Object.assign({}, get(w.id), {active: false, left: t})); toast(msg); go('workers'); };
+  let pay = 'cash';
+  sheet(`${w.name} is leaving`, close => h('div', {},
+    h('div', {class: 'tile__v'}, bal.due > 0 ? `Owed ${rs(bal.due)}` : bal.due < 0 ? `Advance not returned ${rs(-bal.due)}` : 'All settled ✓'),
+    bal.due > 0 ? [seg([['cash', 'Cash'], ['upi', 'UPI']], pay, v => { pay = v; }),
+      h('button', {type: 'button', class: 'btn btn--primary btn--big btn--block', style: 'margin-top:10px', onclick: () => {
+        save({kind: 'wpay', worker: w.id, date: t, type: 'salary', amount: Math.round(bal.due), pay, box: pay === 'cash' ? w.shop : undefined, note: 'final settlement'}); close(); done('Paid and marked as left');
+      }}, `Pay ${rs(bal.due)} and mark as left`)] : null,
+    bal.due < 0 ? [
+      h('button', {type: 'button', class: 'btn btn--primary btn--big btn--block', onclick: () => {
+        save({kind: 'wpay', worker: w.id, date: t, type: 'returned', amount: Math.round(-bal.due), pay: 'cash', box: w.shop, note: 'advance returned on leaving'}); close(); done('Advance returned, marked as left');
+      }}, `They returned ${rs(-bal.due)}`),
+      h('button', {type: 'button', class: 'btn btn--soft btn--block', style: 'margin-top:8px', onclick: () => {
+        save({kind: 'wpay', worker: w.id, date: t, type: 'writeoff', amount: Math.round(-bal.due), pay: 'none', note: 'advance not recovered'}); close(); done('Advance written off, marked as left');
+      }}, `Not returned: write off ${rs(-bal.due)}`)] : null,
+    bal.due === 0 ? h('button', {type: 'button', class: 'btn btn--primary btn--big btn--block', onclick: () => { close(); done(`${w.name} marked as left`); }}, 'Mark as left') : null,
+    h('p', {class: 'muted small', style: 'margin-top:10px'}, 'Their attendance and payments are kept. If they come back, use "Add worker" and tap their name.')));
 }
 
 // One worker: this month's sheet and payments (I5, I16).
 function workerSheet(w) {
   const t = today(), from = t.slice(0, 8) + '01';
-  const days = range(from, t);
   let present = 0, half = 0, absent = 0, ot = 0, earned = 0;
-  days.forEach(d => { const a = attOf(d); if (!a || !a.marks) return; const m = a.marks[w.id]; if (m === 'P') present++; if (m === 'H') half++; if (m === 'A') absent++; ot += Number((a.ot || {})[w.id]) || 0; earned += wageFor(w, d); });
+  range(from, t).forEach(d => { const a = attOf(d); if (!a || !a.marks) return; const m = a.marks[w.id]; if (m === 'P') present++; if (m === 'H') half++; if (m === 'A') absent++; ot += Number((a.ot || {})[w.id]) || 0; earned += wageFor(w, d); });
   const pays = all('wpay').filter(p => p.worker === w.id).sort((a, b) => a.date < b.date ? 1 : -1);
   const month = pays.filter(p => p.date >= from);
-  const sum = type => month.filter(p => p.type === type).reduce((a, p) => a + (Number(p.amount) || 0), 0);
+  const sum = type => sumBy(month.filter(p => p.type === type), p => p.amount);
   const bal = workerBalance(w);
   const p = {kind: 'wpay', worker: w.id, date: t, type: 'salary', amount: '', pay: 'cash'};
+  const TYPES = {salary: 'Wage', advance: 'Advance', bonus: 'Bonus', returned: 'Advance returned', writeoff: 'Advance written off'};
   sheet(w.name, close => h('div', {},
     h('div', {class: 'tiles'}, tile(bal.due >= 0 ? 'Owed now' : 'Advance given', rs(Math.abs(bal.due)), 'all time'), tile('Earned this month', rs(earned), `${present} full · ${half} half · ${absent} absent`)),
     h('table', {class: 't'},
-      [['Overtime hours', qty(ot)], ['Salary paid this month', rs(sum('salary'))], ['Advances this month', rs(sum('advance'))], ['Bonus this month', rs(sum('bonus'))]]
+      [['Overtime hours', qty(ot)], ['Wages paid this month', rs(sum('salary'))], ['Advances this month', rs(sum('advance'))], ['Bonus this month', rs(sum('bonus'))]]
         .map(([a, b]) => h('tr', {}, h('td', {}, a), h('td', {class: 'r'}, b)))),
     h('h3', {class: 'h3'}, 'Record a payment'),
-    field('Type', seg([['salary', 'Salary'], ['advance', 'Advance'], ['bonus', 'Bonus']], p.type, v => { p.type = v; })),
+    field('Type', seg([['salary', 'Wage'], ['advance', 'Advance'], ['bonus', 'Bonus'], ['returned', 'Returned']], p.type, v => { p.type = v; })),
     field('Amount', moneyIn(bal.due > 0 ? Math.round(bal.due) : '', v => { p.amount = v; })),
-    field('Paid by', seg([['cash', 'Cash'], ['upi', 'UPI']], p.pay, v => { p.pay = v; })),
+    field('Paid by', seg([['cash', `Cash (${shopName(w.shop === 'chaat' ? 'chaat' : 'tea')} box)`], ['upi', 'UPI']], p.pay, v => { p.pay = v; })),
     h('button', {type: 'button', class: 'btn btn--primary btn--big btn--block', onclick: () => {
       if (p.amount === '' && bal.due > 0) p.amount = Math.round(bal.due);
       if (!(Number(p.amount) > 0)) { toast('Enter the amount'); return; }
-      save(p); close(); toast('Payment saved'); go('workers');
+      if (p.pay === 'cash') p.box = w.shop === 'chaat' ? 'chaat' : 'tea';
+      save(p); close(); toast('Payment saved'); go(route);
     }}, 'Save payment'),
     h('h3', {class: 'h3'}, 'Recent payments'),
-    pays.length ? h('table', {class: 't'}, pays.slice(0, 15).map(x => h('tr', {}, h('td', {}, dateLabel(x.date)), h('td', {}, x.type), h('td', {class: 'r'}, rs(x.amount)),
-      h('td', {class: 'r'}, h('button', {type: 'button', class: 'link', onclick: () => { remove(x.id); close(); toast('Payment removed'); go('workers'); }}, 'Remove')))))
+    pays.length ? h('table', {class: 't'}, pays.slice(0, 15).map(x => h('tr', {}, h('td', {}, dateLabel(x.date)), h('td', {}, TYPES[x.type] || x.type), h('td', {class: 'r'}, rs(x.amount)),
+      h('td', {class: 'r'}, h('button', {type: 'button', class: 'link', onclick: () => { remove(x.id); close(); toast('Payment removed'); go(route); }}, 'Remove')))))
       : h('p', {class: 'muted'}, 'No payments yet.'),
     h('button', {type: 'button', class: 'btn btn--ghost btn--block', style: 'margin-top:12px', onclick: () => { close(); workerForm(w); }}, 'Edit worker details')));
 }
 
-/* Daily cash tally (H16–H18): expected cash in the box vs counted by notes, shortage or excess recorded. */
+/* Cash tally, one per shop box (H16–H18, P0-4): expected cash vs counted, by notes or as one total. */
 const NOTES = [500, 200, 100, 50, 20, 10, 5, 2, 1];
-function expectedCash(date, shop) {
-  const st = settings();
-  const float = Number(shop === 'chaat' ? st.floatChaat : st.floatTea) || 0;
-  const sales = saleTotals(date, shop).cash;
-  const spent = expensesOn(date, shop).filter(e => e.pay === 'cash').reduce((a, e) => a + (Number(e.amount) || 0) * share(e.shop, shop), 0);
-  const wages = all('wpay').filter(p => p.date === date && p.pay === 'cash').reduce((a, p) => {
-    const w = get(p.worker); return a + (Number(p.amount) || 0) * share(w && w.shop !== 'both' ? w.shop : 'shared', shop);
-  }, 0);
-  return {float, sales, spent, wages, expected: float + sales - spent - wages};
+function cashRecord(date, shop) {
+  const rec = Object.assign({id: `cash:${date}:${shop}`, kind: 'cash', date, shop, notes: {}}, get(`cash:${date}:${shop}`) || {});
+  rec.notes = Object.assign({}, rec.notes);
+  if (!rec.mode) rec.mode = settings().cashMode || 'total';
+  return rec;
+}
+/** The counting part, for one shop box. Used here and in Close the day. */
+function cashCounter(date, shop) {
+  const ex = expectedCash(date, shop), rec = cashRecord(date, shop);
+  const wrap = h('div', {});
+  const countedEl = h('div', {class: 'tile__v'}), diffEl = h('div', {class: 'tile__v'});
+  const total = () => rec.mode === 'total' ? Number(rec.total) || 0 : NOTES.reduce((a, n) => a + n * (Number(rec.notes[n]) || 0), 0);
+  const upd = () => {
+    const c = total(), d = c - ex.expected, any = rec.mode === 'total' ? rec.total !== '' && rec.total != null : Object.keys(rec.notes).length > 0;
+    countedEl.textContent = any ? rs(c) : '–';
+    diffEl.textContent = !any ? '–' : Math.abs(d) < 1 ? 'Matches ✓' : (d < 0 ? 'Short ' : 'Extra ') + rs(Math.abs(d));
+    diffEl.className = 'tile__v ' + (!any ? 'muted' : Math.abs(d) < 1 ? 'up' : 'down');
+  };
+  let t = null;
+  const persist = () => { clearTimeout(t); t = setTimeout(() => { rec.counted = total(); rec.expected = ex.expected; rec.diff = rec.counted - ex.expected; save(rec); }, 500); };
+  const counter = h('div', {});
+  const drawCounter = () => {
+    counter.innerHTML = '';
+    if (rec.mode === 'total') counter.append(field('Cash in the box now', moneyIn(rec.total, v => { rec.total = v; persist(); upd(); }, {inputmode: 'numeric'})));
+    else counter.append(h('div', {class: 'grid2'}, NOTES.map(n => field(n >= 10 ? `₹${n} notes` : `₹${n} coins`,
+      numIn(rec.notes[n], v => { if (v) rec.notes[n] = v; else delete rec.notes[n]; persist(); upd(); }, {inputmode: 'numeric', placeholder: 'how many'})))));
+  };
+  wrap.append(
+    h('table', {class: 't'},
+      [['Change kept at opening', '+ ' + rs(ex.float)], ['Cash sales', '+ ' + rs(ex.sales)], ['Cash spent from this box', '− ' + rs(ex.spent)],
+        ['Wages paid in cash', (ex.wages < 0 ? '+ ' : '− ') + rs(Math.abs(ex.wages))], ex.petty ? ['Petty cash given (net)', (ex.petty < 0 ? '+ ' : '− ') + rs(Math.abs(ex.petty))] : null]
+        .filter(Boolean).map(([a, b]) => h('tr', {}, h('td', {}, a), h('td', {class: 'r'}, b))),
+      h('tr', {}, h('th', {}, 'Should be in the box'), h('th', {class: 'r'}, rs(ex.expected)))),
+    !saleTotals(date, shop).entered ? h('p', {class: 'small down', style: 'margin-top:6px'}, 'Enter the cash sales first, so this is right.') : null,
+    h('div', {style: 'margin-top:10px'}, seg([['total', 'Type the total'], ['notes', 'Count notes']], rec.mode, v => { rec.mode = v; drawCounter(); upd(); persist(); })),
+    counter,
+    h('div', {class: 'tiles'}, h('div', {class: 'tile'}, h('div', {class: 'tile__l'}, 'Counted'), countedEl), h('div', {class: 'tile'}, h('div', {class: 'tile__l'}, 'Difference'), diffEl)));
+  drawCounter(); upd();
+  return wrap;
 }
 function screenCash(view) {
   view.append(shopSwitch(() => go('cash'), {noBoth: true}));
   view.append(dateBar(() => go('cash')));
   const shop = curShop, date = curDate;
-  const ex = expectedCash(date, shop);
-  const rec = Object.assign({id: `cash:${date}:${shop}`, kind: 'cash', date, shop, notes: {}}, get(`cash:${date}:${shop}`) || {});
-  rec.notes = Object.assign({}, rec.notes);
-
-  view.append(h('div', {class: 'card'}, h('p', {class: 'eyebrow'}, 'Cash that should be in the box'),
-    h('table', {class: 't'},
-      [['Change kept at opening', '+ ' + rs(ex.float)], ['Cash sales (from sales entry)', '+ ' + rs(ex.sales)], ['Cash spent from box', '− ' + rs(ex.spent)], ['Cash paid to workers', '− ' + rs(ex.wages)]]
-        .map(([a, b]) => h('tr', {}, h('td', {}, a), h('td', {class: 'r'}, b))),
-      h('tr', {}, h('th', {}, 'Expected'), h('th', {class: 'r'}, rs(ex.expected)))),
-    !saleTotals(date, shop).entered ? h('p', {class: 'small down', style: 'margin-top:6px'}, 'Enter today\'s sales first, so the cash sales figure is right.') : null));
-
-  const countedEl = h('div', {class: 'tile__v'}), diffEl = h('div', {class: 'tile__v'});
-  const total = () => NOTES.reduce((a, n) => a + n * (Number(rec.notes[n]) || 0), 0);
-  const upd = () => {
-    const c = total(), d = c - ex.expected;
-    countedEl.textContent = rs(c);
-    diffEl.textContent = Math.abs(d) < 1 ? 'Matches ✓' : (d < 0 ? 'Short ' : 'Extra ') + rs(Math.abs(d));
-    diffEl.className = 'tile__v ' + (Math.abs(d) < 1 ? 'up' : 'down');
-  };
-  let t = null;
-  const persist = () => { clearTimeout(t); t = setTimeout(() => { rec.counted = total(); rec.expected = ex.expected; rec.diff = rec.counted - ex.expected; save(rec); }, 500); };
-  view.append(h('p', {class: 'eyebrow', style: 'margin-top:14px'}, 'Count the notes and coins'));
-  view.append(h('div', {class: 'grid2'}, NOTES.map(n => field(n >= 10 ? `₹${n} notes` : `₹${n} coins`,
-    numIn(rec.notes[n], v => { if (v) rec.notes[n] = v; else delete rec.notes[n]; persist(); upd(); }, {inputmode: 'numeric', placeholder: 'how many'})))));
-  view.append(h('div', {class: 'tiles'}, h('div', {class: 'tile'}, h('div', {class: 'tile__l'}, 'Counted'), countedEl), h('div', {class: 'tile'}, h('div', {class: 'tile__l'}, 'Difference'), diffEl)));
-  view.append(field('Note (optional)', textIn(rec.note, v => { rec.note = v; persist(); }, {placeholder: 'e.g. ₹100 given for milk'})));
-  if (can('setup')) view.append(field(`Change kept at opening, ${shopName(shop)} (every day)`, moneyIn(ex.float, v => {
+  view.append(h('div', {class: 'card'}, h('p', {class: 'eyebrow'}, `${shopName(shop)} cash box`), cashCounter(date, shop)));
+  if (can('setup')) view.append(field(`Change kept at opening, ${shopName(shop)} box (every day)`, moneyIn(expectedCash(date, shop).float, v => {
     const st = Object.assign({}, settings()); st[shop === 'chaat' ? 'floatChaat' : 'floatTea'] = v || 0; save(st);
   })));
-  upd();
 }
 
-/* Reports (L1): period summary, chaat vs tea, items, weekday vs weekend, expenses, payback, break-even, export. */
+/* Close the day (P1-1): one guided flow for the whole closing routine. Every step can be skipped,
+   progress is saved, and it opens on the oldest day not yet closed (P0-7). */
+let closeDate = null;
+function closeRecord(date) { return Object.assign({id: 'close:' + date, kind: 'close', date, step: 0, done: false}, get('close:' + date) || {}); }
+
+function closeSteps(date) {
+  const open = SHOP_KEYS.filter(s => isOpen(s, date));
+  const counted = open.filter(s => salesMode(s) === 'items');
+  const steps = [{k: 'money', t: 'Money'}];
+  if (counted.length) steps.push({k: 'items', t: 'Items sold'});
+  steps.push({k: 'spend', t: 'Spending'});
+  if (stockItems().some(s => s.key)) steps.push({k: 'stock', t: 'Stock left'});
+  if (workers().length) steps.push({k: 'workers', t: 'Workers'});
+  steps.push({k: 'cash', t: 'Cash count'}, {k: 'summary', t: 'Summary'});
+  return steps;
+}
+
+function screenClose(view) {
+  if (!closeDate) closeDate = closingDay();
+  const date = closeDate, t = today();
+  const rec = closeRecord(date), steps = closeSteps(date);
+  const at = rec.done ? steps.length - 1 : Math.min(rec.step || 0, steps.length - 1);
+  const goStep = n => { save(Object.assign(closeRecord(date), {step: n})); go('close'); };
+  const changeDay = n => { closeDate = addDays(date, n); go('close'); };
+
+  view.append(h('div', {class: 'row row--between', style: 'margin-top:6px'},
+    h('button', {type: 'button', class: 'iconbtn', 'aria-label': 'Day before', onclick: () => changeDay(-1)}, '‹'),
+    bigDate(rec.done ? 'Closed ✓' : 'Closing', date),
+    h('button', {type: 'button', class: 'iconbtn', 'aria-label': 'Next day', disabled: date >= t, onclick: () => changeDay(1)}, '›')));
+  if (date < t && !rec.done) view.append(h('p', {class: 'small muted', style: 'text-align:center'}, `This is ${dateLabel(date).toLowerCase()}, the oldest day not closed yet.`));
+  view.append(h('div', {class: 'steps', role: 'list'}, steps.map((s, i) => h('button', {type: 'button', role: 'listitem', class: 'steps__s' + (i === at ? ' on' : i < at ? ' done' : ''), 'aria-current': i === at ? 'step' : null, onclick: () => goStep(i)}, h('i'), h('span', {}, s.t)))));
+
+  const body = h('div', {class: 'stepbody'});
+  view.append(body);
+  const step = steps[at];
+  try { CLOSE_STEPS[step.k](body, date); } catch (e) { console.error(e); body.append(h('div', {class: 'alert alert--bad'}, 'Something went wrong on this step: ' + e.message)); }
+
+  if (step.k !== 'summary') view.append(h('div', {class: 'grid2', style: 'margin-top:14px'},
+    h('button', {type: 'button', class: 'btn btn--ghost btn--big', disabled: at === 0, onclick: () => goStep(at - 1)}, 'Back'),
+    h('button', {type: 'button', class: 'btn btn--primary btn--big', onclick: () => goStep(at + 1)}, 'Next')));
+}
+
+const CLOSE_STEPS = {
+  money(body, date) {
+    body.append(h('p', {class: 'muted small'}, 'Read UPI from the soundbox or the merchant app total. Leave a shop blank to skip it.'));
+    SHOP_KEYS.filter(s => isOpen(s, date)).forEach(shop => {
+      const rec = saleRecord(date, shop);
+      let saveT = null;
+      const persist = () => { clearTimeout(saveT); saveT = setTimeout(() => save(rec), 300); };
+      const more = h('div', {hidden: !(rec.unpaid || rec.short || rec.note)},
+        h('div', {class: 'grid2'}, field('Left without paying', moneyIn(rec.unpaid, v => { rec.unpaid = v; persist(); })), field('Change short', moneyIn(rec.short, v => { rec.short = v; persist(); }))),
+        field('Note', textIn(rec.note, v => { rec.note = v; persist(); })));
+      body.append(h('div', {class: 'card'}, h('p', {class: 'eyebrow'}, `${shopName(shop)} shop`),
+        moneyFields(rec, persist, {brief: true}), more,
+        more.hidden ? h('button', {type: 'button', class: 'link', onclick: e => { more.hidden = false; e.target.remove(); }}, '+ Unpaid, change short or a note') : null));
+    });
+  },
+  items(body, date) {
+    SHOP_KEYS.filter(s => isOpen(s, date) && salesMode(s) === 'items').forEach(shop => {
+      const rec = saleRecord(date, shop);
+      const fromTally = prefillFromTally(rec);
+      if (fromTally) save(rec);
+      const sumEl = h('p', {class: 'small'});
+      const upd = () => { const g = gapText(rec, shop); sumEl.className = 'small ' + g.cls; sumEl.textContent = g.text; };
+      let saveT = null;
+      body.append(h('div', {class: 'row row--between'}, h('h3', {class: 'h3'}, shopName(shop)), sumEl),
+        fromTally ? h('p', {class: 'small muted'}, 'Filled in from the counter tally. Fix any that are wrong.') : null,
+        itemGrid(rec, shop, () => { clearTimeout(saveT); saveT = setTimeout(() => save(rec), 300); upd(); }));
+      upd();
+    });
+  },
+  spend(body, date) {
+    suppliers().forEach(sup => body.append(supplierCard(sup, date)));
+    const rep = repeatList(date, () => go('close'));
+    if (rep) body.append(rep);
+    const list = onDate('expense', date).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+    body.append(h('div', {class: 'row row--between', style: 'margin:12px 0 6px'}, h('p', {class: 'eyebrow'}, `Spent ${dateLabel(date).toLowerCase()} · ${list.length}`), h('b', {class: 'num'}, rs(sumBy(list, e => e.amount)))));
+    if (list.length) body.append(expenseList(list));
+    body.append(h('button', {type: 'button', class: 'btn btn--soft btn--block', style: 'margin-top:10px', onclick: () => { curDate = date; expenseForm(null, {date}); }}, '+ Add other'));
+  },
+  stock(body, date) {
+    const rec = countRecord(date);
+    let saveT = null;
+    body.append(h('p', {class: 'muted small'}, 'What is left now. Blank = not counted.'));
+    const fields = countFields(rec, stockItems().filter(s => s.key));
+    fields.forEach(f => f.addEventListener('input', () => { clearTimeout(saveT); saveT = setTimeout(() => save(rec), 400); }));
+    body.append(h('div', {}, fields));
+    body.append(h('button', {type: 'button', class: 'link', onclick: () => countForm(date)}, 'Count other items'));
+  },
+  workers(body, date) {
+    if (markAllPresent(date)) toast('Everyone marked present. Tap only who was absent or on half day.');
+    body.append(attendanceList(date, () => {}));
+    const pb = payEveryoneBar(date, () => go('close'));
+    if (pb) body.append(pb);
+  },
+  cash(body, date) {
+    SHOP_KEYS.filter(s => isOpen(s, date)).forEach(shop => body.append(h('div', {class: 'card'}, h('p', {class: 'eyebrow'}, `${shopName(shop)} cash box`), cashCounter(date, shop))));
+  },
+  summary(body, date) {
+    const rec = closeRecord(date), money = can('profit');
+    const d = daySummary(date, 'both');
+    body.append(h('div', {class: 'tiles'},
+      tile('Sales', rs(d.sales), `cash ${rs(d.cash)} · UPI ${rs(d.upi)}`, 'tile--wide tile--hero'),
+      SHOP_KEYS.filter(s => isOpen(s, date)).map(s => { const x = daySummary(date, s); return tile(shopName(s), rs(x.sales), x.counted && Math.abs(x.gap) >= 20 ? `items ${x.gap > 0 ? '+' : '−'}${rs(Math.abs(x.gap))} vs money` : x.entered ? '' : 'not entered'); })));
+    const cashRows = SHOP_KEYS.filter(s => isOpen(s, date)).map(s => {
+      const c = get(`cash:${date}:${s}`);
+      return [`${shopName(s)} box`, !c || c.counted == null ? 'not counted' : Math.abs(c.diff) < 1 ? 'matches ✓' : `${c.diff < 0 ? 'short' : 'extra'} ${rs(Math.abs(c.diff))}`];
+    });
+    if (d.unpaid) cashRows.push(['Left without paying', rs(d.unpaid)]);
+    if (d.short) cashRows.push(['Change short', rs(d.short)]);
+    body.append(h('div', {class: 'card'}, h('p', {class: 'eyebrow'}, 'Cash boxes'), h('table', {class: 't'}, cashRows.map(([a, b]) => h('tr', {}, h('td', {}, a), h('td', {class: 'r' + (/short/.test(b) ? ' down' : '')}, b))))));
+    if (money) {
+      const pt = profitTrend(date, 'both');
+      body.append(h('div', {class: 'card'}, h('p', {class: 'eyebrow'}, 'Costs for the day'),
+        h('table', {class: 't'}, d.lines.map(l => h('tr', {}, h('td', {}, l.label), h('td', {class: 'r'}, rs(l.amount)))),
+          h('tr', {}, h('th', {}, 'Sales minus these'), h('th', {class: 'r'}, rs(d.profit)))),
+        h('p', {class: 'muted small'}, 'Purchases count on the day they are bought, so one day can look high or low.' + (pt ? ` Profit over the last ${pt.days} days: ${rs(pt.avg)} a day.` : ''))));
+    }
+    // Day tags (Rain, Holiday…) are left out of the predictions.
+    const tag = Object.assign({id: 'tag:' + date, kind: 'tag', date, tags: []}, get('tag:' + date) || {});
+    tag.tags = (tag.tags || []).slice();
+    const tagWrap = h('div', {class: 'chips'});
+    const drawTags = () => { tagWrap.innerHTML = ''; DAY_TAGS.forEach(k => tagWrap.append(h('button', {type: 'button', class: 'chip', 'aria-pressed': String(tag.tags.includes(k)), onclick: () => { tag.tags = tag.tags.includes(k) ? tag.tags.filter(x => x !== k) : tag.tags.concat([k]); save(tag); drawTags(); }}, k))); };
+    drawTags();
+    body.append(h('div', {class: 'card'}, h('p', {class: 'eyebrow'}, 'Anything unusual?'), tagWrap));
+    body.append(h('div', {class: 'stack', style: 'margin-top:12px'},
+      h('button', {type: 'button', class: 'btn btn--soft btn--block', onclick: () => shareText(closeText(date))}, 'Send to WhatsApp'),
+      rec.done ? h('button', {type: 'button', class: 'btn btn--ghost btn--block', onclick: () => { save(Object.assign(rec, {done: false, step: 0})); go('close'); }}, 'Reopen this day')
+        : h('button', {type: 'button', class: 'btn btn--primary btn--big btn--block', onclick: () => { save(Object.assign(rec, {done: true, closedAt: Date.now()})); closeDate = null; toast(`${longDate(date)} closed`); go('home'); }}, 'Mark the day closed')));
+  }
+};
+
+function closeText(date) {
+  const d = daySummary(date, 'both'), money = can('profit');
+  const lines = [`*Closing: ${longDate(date)}*`];
+  SHOP_KEYS.filter(s => isOpen(s, date)).forEach(s => { const x = daySummary(date, s); lines.push(`${shopName(s)}: ${rs(x.sales)} (cash ${rs(x.cash)}, UPI ${rs(x.upi)})`); });
+  lines.push(`Total: ${rs(d.sales)}`);
+  if (money) {
+    lines.push('Costs: ' + d.lines.map(l => `${l.label} ${rs(l.amount)}`).join(', '));
+    const pt = profitTrend(date, 'both');
+    if (pt) lines.push(`Profit, last ${pt.days} days: ${rs(pt.avg)} a day`);
+  }
+  SHOP_KEYS.forEach(s => { const c = get(`cash:${date}:${s}`); if (c && c.counted != null && Math.abs(c.diff) >= 1) lines.push(`${shopName(s)} box ${c.diff < 0 ? 'short' : 'extra'} ${rs(Math.abs(c.diff))}`); });
+  if (d.unpaid || d.short) lines.push(`Left without paying ${rs(d.unpaid)}, change short ${rs(d.short)}`);
+  const tag = get('tag:' + date);
+  if (tag && tag.tags && tag.tags.length) lines.push('Note: ' + tag.tags.join(', '));
+  return lines.join('\n');
+}
+
+/* Live plate tally for the chaat counter (P1-3). A phone kept at the counter: pictures only,
+   one tap = one plate, a big Undo, nothing else. Counts flow into the closing entry.
+   Open it from More, or with the link ending in #tally. Hold the corner button to leave. */
+function tallyMode() { return typeof route !== 'undefined' && route === 'tally'; }
+function screenTally(app) {
+  const shop = 'chaat', date = today();
+  const id = `tally:${date}:${shop}`;
+  const rec = Object.assign({id, kind: 'tally', date, shop, counts: {}, log: []}, get(id) || {});
+  rec.counts = Object.assign({}, rec.counts); rec.log = (rec.log || []).slice(-300);
+  let saveT = null;
+  const persist = () => { clearTimeout(saveT); saveT = setTimeout(() => save(rec), 400); };
+  const list = items(shop).filter(i => !i.parcel);
+  const badges = {};
+  const totalEl = h('span', {class: 'tally__total'});
+  const upd = () => {
+    list.forEach(it => { const n = rec.counts[it.id] || 0; badges[it.id].textContent = n || ''; badges[it.id].hidden = !n; });
+    totalEl.textContent = sumBy(Object.keys(rec.counts), k => rec.counts[k]);
+  };
+  const tapped = (it, tileEl) => {
+    rec.counts[it.id] = (rec.counts[it.id] || 0) + 1;
+    rec.log.push(it.id);
+    tileEl.classList.remove('tally__t--hit'); void tileEl.offsetWidth; tileEl.classList.add('tally__t--hit');
+    if (navigator.vibrate) navigator.vibrate(30);
+    persist(); upd();
+  };
+  const undo = () => {
+    const last = rec.log.pop();
+    if (!last) return;
+    rec.counts[last] = Math.max(0, (rec.counts[last] || 0) - 1);
+    if (!rec.counts[last]) delete rec.counts[last];
+    persist(); upd();
+  };
+  // Leaving needs a 1.5 second hold, so a tap by mistake does nothing.
+  let holdT = null;
+  const exitBtn = h('button', {type: 'button', class: 'tally__exit', 'aria-label': 'Hold to leave the tally'}, '✕');
+  const startHold = () => { exitBtn.classList.add('holding'); holdT = setTimeout(() => { save(rec); history.replaceState(null, '', location.pathname); go('home'); }, 1500); };
+  const stopHold = () => { exitBtn.classList.remove('holding'); clearTimeout(holdT); };
+  ['pointerdown', 'touchstart'].forEach(ev => exitBtn.addEventListener(ev, e => { e.preventDefault(); startHold(); }));
+  ['pointerup', 'pointerleave', 'touchend', 'touchcancel'].forEach(ev => exitBtn.addEventListener(ev, stopHold));
+
+  const grid = h('div', {class: 'tally__grid'}, list.map((it, i) => {
+    const badge = h('span', {class: 'tally__n'});
+    badges[it.id] = badge;
+    const t = h('button', {type: 'button', class: 'tally__t', style: `--hue:${(i * 47) % 360}`, 'aria-label': it.name}, itemPic(it, 'tally__img'), badge);
+    t.addEventListener('click', () => tapped(it, t));
+    return t;
+  }));
+  app.append(h('main', {class: 'tally'}, exitBtn, grid,
+    h('div', {class: 'tally__bar'}, h('button', {type: 'button', class: 'tally__undo', onclick: undo, 'aria-label': 'Undo last plate'}, '↶'), totalEl)));
+  upd();
+  // A new business day starts a fresh tally.
+  const tick = setInterval(() => { if (route !== 'tally') { clearInterval(tick); return; } if (today() !== date) { clearInterval(tick); render(); } }, 60000);
+}
+
+/* Reports (L1): period summary, chaat vs tea, items, labour, leakage check, targets, payback, break-even, export. */
 let curPeriod = 'month';
 function periodRange(p) {
   const t = today(), d = parseD(t);
@@ -1264,61 +2179,83 @@ function periodRange(p) {
   if (p === 'last') { const f = ymd(new Date(d.getFullYear(), d.getMonth() - 1, 1)); return [f, ymd(new Date(d.getFullYear(), d.getMonth(), 0)), 'Last month']; }
   return [ymd(new Date(d.getFullYear(), 0, 1)), t, 'This year'];
 }
+const pct = (a, b) => b ? Math.round(a / b * 100) + '%' : '–';
 function screenReports(view) {
   view.append(shopSwitch(() => go('reports')));
   view.append(seg([['today', 'Today'], ['week', 'Week'], ['month', 'Month'], ['last', 'Last mo.'], ['year', 'Year']], curPeriod, v => { curPeriod = v; go('reports'); }));
-  const [from, to, label] = periodRange(curPeriod);
-  const p = periodSummary(from, to, curShop);
-  view.append(h('p', {class: 'muted small', style: 'margin-top:8px'}, `${label}: ${dateLabel(from)} – ${dateLabel(to)} · sales entered for ${p.open} day${p.open === 1 ? '' : 's'}`));
+  let [from, to, label] = periodRange(curPeriod);
+  // Nothing to report before the first shop opened.
+  const firstOpen = SHOP_KEYS.filter(s => inShop(s, curShop)).map(openedOn).filter(Boolean).sort()[0];
+  if (firstOpen && from < firstOpen && to >= firstOpen) from = firstOpen;
+  // Today's purchases without today's sales would make the period look worse than it is: stop at yesterday until today is entered.
+  let note = '';
+  if (from < to && to === today() && !saleTotals(to, curShop).entered) { to = addDays(to, -1); note = ' · today not entered yet'; }
+  const p = periodSummary(from, to, curShop), oneDay = from === to;
+  view.append(h('p', {class: 'muted small', style: 'margin-top:8px'}, `${label}: ${dateLabel(from)} – ${dateLabel(to)} · sales entered for ${p.open} day${p.open === 1 ? '' : 's'}${note}`));
   view.append(h('div', {class: 'tiles'},
     tile('Sales', rs(p.sales), p.open ? `${rs(p.sales / p.open)} a day` : '', 'tile--wide tile--hero'),
-    tile('Profit', rs(p.profit), p.sales ? Math.round(p.profit / p.sales * 100) + '% of sales' : ''),
-    tile('Costs', rs(p.spend + p.wages + p.fixed), `buying ${rs(p.spend)} · wages ${rs(p.wages)} · rent & bills ${rs(p.fixed)}`),
-    tile('Cash / UPI', `${rs(p.cash)} / ${rs(p.upi)}`, p.cash + p.upi ? `UPI ${Math.round(p.upi / (p.cash + p.upi) * 100)}%` : ''),
-    tile('Money vs items sold', (p.gap >= 0 ? '+' : '−') + rs(Math.abs(p.gap)), 'received minus counted items')));
+    tile(oneDay ? 'Sales minus the day\'s costs' : 'Profit', rs(p.profit), oneDay ? 'purchases count on the day bought' : p.sales ? pct(p.profit, p.sales) + ' of sales' : ''),
+    tile('Costs', rs(p.cost), `buying ${rs(p.spend)} · wages ${rs(p.wages)} · rent & bills ${rs(p.fixed)}`),
+    tile('Cash / UPI', `${rs(p.cash)} / ${rs(p.upi)}`, p.cash + p.upi ? `UPI ${pct(p.upi, p.cash + p.upi)}` : ''),
+    p.counted ? tile('Money vs items sold', (p.gap >= 0 ? '+' : '−') + rs(Math.abs(p.gap)), `on ${p.counted} day${p.counted === 1 ? '' : 's'} with item counts`) : null,
+    p.unpaid || p.short ? tile('Lost at the counter', rs(p.unpaid + p.short), `left without paying ${rs(p.unpaid)} · change short ${rs(p.short)}`) : null));
 
   if (curShop === 'both') {
     const c = periodSummary(from, to, 'chaat'), t = periodSummary(from, to, 'tea');
+    const lc = labourCost(from, to, 'chaat'), lt = labourCost(from, to, 'tea');
     view.append(h('div', {class: 'card'}, h('p', {class: 'eyebrow'}, `${shopName('chaat')} vs ${shopName('tea')}`),
       h('table', {class: 't'}, h('tr', {}, h('th', {}), h('th', {class: 'r'}, shopName('chaat')), h('th', {class: 'r'}, shopName('tea'))),
-        [['Sales', 'sales'], ['Buying', 'spend'], ['Wages', 'wages'], ['Rent & bills', 'fixed'], ['Profit', 'profit']]
-          .map(([l, k]) => h('tr', {}, h('td', {}, l), h('td', {class: 'r'}, rs(c[k])), h('td', {class: 'r'}, rs(t[k])))))));
+        [['Sales', 'sales'], ['Buying', 'spend'], ['Wages', 'wages'], ['Rent & bills', 'fixed'], [oneDay ? 'Sales − costs' : 'Profit', 'profit']]
+          .map(([l, k]) => h('tr', {}, h('td', {}, l), h('td', {class: 'r'}, rs(c[k])), h('td', {class: 'r'}, rs(t[k])))),
+        h('tr', {}, h('td', {}, 'Wages + staff food'), h('td', {class: 'r'}, lc.pct == null ? '–' : Math.round(lc.pct) + '% of sales'), h('td', {class: 'r'}, lt.pct == null ? '–' : Math.round(lt.pct) + '% of sales')),
+        h('tr', {}, h('td', {}, 'Sales per worker-day'), h('td', {class: 'r'}, lc.perWorkerDay == null ? '–' : rs(lc.perWorkerDay)), h('td', {class: 'r'}, lt.perWorkerDay == null ? '–' : rs(lt.perWorkerDay))))));
+  } else {
+    const lb = labourCost(from, to, curShop);
+    if (lb.workerDays) view.append(h('div', {class: 'card'}, h('p', {class: 'eyebrow'}, 'Labour'),
+      h('table', {class: 't'}, [['Wages', rs(lb.wages)], ['Staff food', rs(lb.food)], ['Wages + food, share of sales', lb.pct == null ? '–' : Math.round(lb.pct) + '%'], ['Sales per worker-day', lb.perWorkerDay == null ? '–' : rs(lb.perWorkerDay)]]
+        .map(([a, b]) => h('tr', {}, h('td', {}, a), h('td', {class: 'r'}, b))))));
   }
 
   if (p.days.length > 1) view.append(h('div', {class: 'card'}, h('p', {class: 'eyebrow'}, 'Sales by day'),
     columns(p.days.slice(-31).map(d => ({l: dateLabel(d.date), s: String(parseD(d.date).getDate()), v: d.sales, now: d.date === today()})))));
 
+  const tp = targetProgress(today(), curShop);
+  if (tp && (curPeriod === 'month' || curPeriod === 'today')) view.append(h('div', {class: 'card'}, h('p', {class: 'eyebrow'}, 'Monthly target'),
+    h('div', {class: 'tile__v'}, `${rs(tp.sales)} of ${rs(tp.target)}`),
+    h('div', {class: 'bar__t', style: 'margin:8px 0'}, h('div', {class: 'bar__f', style: `width:${Math.max(1, Math.min(100, tp.pct))}%`})),
+    h('p', {class: 'muted small'}, tp.pct >= 100 ? 'Reached ✓' : `${rs(tp.needPerDay)} a day needed for the rest of the month`)));
+
   const its = itemTotals(from, to, curShop);
-  view.append(h('div', {class: 'card'}, h('p', {class: 'eyebrow'}, 'Items: best sellers first'),
-    its.length ? [bars(its.slice(0, 12).map(r => ({l: r.item.name, v: r.sales, c: r.item.shop})), rs),
-      h('div', {class: 'tablewrap'}, h('table', {class: 't'}, h('tr', {}, h('th', {}, 'Item'), h('th', {class: 'r'}, 'Sold'), h('th', {class: 'r'}, 'Sales'), h('th', {class: 'r'}, 'Profit')),
-        its.map(r => h('tr', {}, h('td', {}, r.item.name), h('td', {class: 'r'}, r.n), h('td', {class: 'r'}, rs(r.sales)), h('td', {class: 'r'}, r.profit == null ? '–' : rs(r.profit)))))),
-      its.some(r => r.profit == null) ? h('p', {class: 'small muted'}, 'Profit per item shows once a cost per plate/cup is set in Menu and prices.') : null]
-      : h('p', {class: 'muted'}, 'No item counts in this period.')));
+  if (its.length) view.append(h('div', {class: 'card'}, h('p', {class: 'eyebrow'}, 'Items: best sellers first'),
+    bars(its.slice(0, 12).map(r => ({l: r.item.name, v: r.sales, c: r.item.shop})), rs),
+    h('div', {class: 'tablewrap'}, h('table', {class: 't'}, h('tr', {}, h('th', {}, 'Item'), h('th', {class: 'r'}, 'Sold'), h('th', {class: 'r'}, 'Sales'), h('th', {class: 'r'}, 'Profit')),
+      its.map(r => h('tr', {}, h('td', {}, r.item.name), h('td', {class: 'r'}, r.n), h('td', {class: 'r'}, rs(r.sales)), h('td', {class: 'r'}, r.profit == null ? '–' : rs(r.profit)))))),
+    its.some(r => r.profit == null) ? h('p', {class: 'small muted'}, 'Profit per item shows once a cost per plate/cup is set in Menu and prices.') : null));
 
   // Weekday vs weekend averages.
   const wd = p.days.filter(d => d.entered && ![0, 6].includes(parseD(d.date).getDay())), we = p.days.filter(d => d.entered && [0, 6].includes(parseD(d.date).getDay()));
-  const avg = a => a.length ? a.reduce((x, d) => x + d.sales, 0) / a.length : 0;
-  if (wd.length || we.length) view.append(h('div', {class: 'card'}, h('p', {class: 'eyebrow'}, 'Average day'), bars([{l: 'Weekday', v: avg(wd)}, {l: 'Weekend', v: avg(we)}], rs)));
+  const avg = a => a.length ? sumBy(a, d => d.sales) / a.length : 0;
+  if (wd.length && we.length) view.append(h('div', {class: 'card'}, h('p', {class: 'eyebrow'}, 'Average day'), bars([{l: 'Weekday', v: avg(wd)}, {l: 'Weekend', v: avg(we)}], rs)));
 
-  // Spending by category.
-  const cats = {};
-  all('expense').filter(e => e.date >= from && e.date <= to && share(e.shop, curShop) > 0).forEach(e => { cats[e.cat] = (cats[e.cat] || 0) + (Number(e.amount) || 0) * share(e.shop, curShop); });
-  const cl = Object.keys(cats).map(k => ({l: catOf(k).i + ' ' + k, v: cats[k]})).sort((a, b) => b.v - a.v);
-  view.append(h('div', {class: 'card'}, h('p', {class: 'eyebrow'}, 'Money spent, by type'), cl.length ? bars(cl, rs) : h('p', {class: 'muted'}, 'No expenses in this period.')));
+  // Where the money went: the same cost lines the profit uses.
+  view.append(h('div', {class: 'card'}, h('p', {class: 'eyebrow'}, 'Costs, by type'), p.lines.length ? bars(p.lines.map(l => ({l: l.label, v: l.amount})), rs) : h('p', {class: 'muted'}, 'No costs in this period.')));
 
-  // This month vs last month.
-  const [lf, lt] = periodRange('last'), [mf, mt] = periodRange('month');
-  const m = periodSummary(mf, mt, curShop), l = periodSummary(lf, lt, curShop);
-  view.append(h('div', {class: 'card'}, h('p', {class: 'eyebrow'}, 'This month vs last month'),
+  if (can('setup')) view.append(leakageCard());
+
+  // This month so far vs the same days of last month (P0-6).
+  const mc = monthCompare(today(), curShop);
+  const perDay = x => x.open ? x.sales / x.open : 0;
+  view.append(h('div', {class: 'card'}, h('p', {class: 'eyebrow'}, `1–${mc.n} ${MON[parseD(today()).getMonth()]} vs 1–${Number(mc.lTo.slice(8))} ${MON[parseD(mc.lFrom).getMonth()]}`),
     h('table', {class: 't'}, h('tr', {}, h('th', {}), h('th', {class: 'r'}, 'This month'), h('th', {class: 'r'}, 'Last month')),
-      [['Sales', 'sales'], ['Profit', 'profit']].map(([lb, k]) => h('tr', {}, h('td', {}, lb), h('td', {class: 'r'}, rs(m[k]), ' ', change(m[k], l[k]) || ''), h('td', {class: 'r'}, rs(l[k])))))));
+      [['Sales', mc.now.sales, mc.before.sales], ['Sales per day open', perDay(mc.now), perDay(mc.before)], ['Profit', mc.now.profit, mc.before.profit]]
+        .map(([lb, a, b]) => h('tr', {}, h('td', {}, lb), h('td', {class: 'r'}, rs(a), ' ', change(a, b) || ''), h('td', {class: 'r'}, rs(b))))),
+    mc.before.open < mc.n ? h('p', {class: 'muted small'}, `Last month had sales on ${mc.before.open} of those days, so compare the per-day figure.`) : null));
 
-  const pb = payback(), be = breakEven(curShop);
-  view.append(h('div', {class: 'card'}, h('p', {class: 'eyebrow'}, 'Getting your investment back'),
-    h('div', {class: 'tile__v'}, `${rs(pb.earned)} of ${rs(pb.invested)}`),
-    h('div', {class: 'bar__t', style: 'margin:8px 0'}, h('div', {class: 'bar__f', style: `width:${Math.max(1, Math.min(100, pb.earned / pb.invested * 100))}%`})),
-    h('p', {class: 'muted small'}, pb.monthsLeft != null ? `At the current profit (${rs(pb.perDay)} a day) you get it all back in about ${Math.ceil(pb.monthsLeft)} month${Math.ceil(pb.monthsLeft) === 1 ? '' : 's'}.` : 'Shows once the shops are making a profit.')));
+  const pb = payback(curShop), be = breakEven(curShop);
+  view.append(h('div', {class: 'card'}, h('p', {class: 'eyebrow'}, `Getting your investment back · ${shopName(curShop)}`),
+    h('div', {class: 'tile__v'}, `${rs(Math.max(0, pb.earned))} of ${rs(pb.invested)}`),
+    h('div', {class: 'bar__t', style: 'margin:8px 0'}, h('div', {class: 'bar__f', style: `width:${Math.max(1, Math.min(100, pb.invested ? pb.earned / pb.invested * 100 : 0))}%`})),
+    h('p', {class: 'muted small'}, pb.recoveredOn ? `Recovered on ${longDate(pb.recoveredOn)} ✓` : pb.monthsLeft != null ? `At the current profit (${rs(pb.perDay)} a day) you get it all back in about ${Math.max(1, Math.ceil(pb.monthsLeft))} month${Math.ceil(pb.monthsLeft) <= 1 ? '' : 's'}.` : pb.earned < 0 ? `So far the ${curShop === 'both' ? 'shops have' : 'shop has'} lost ${rs(-pb.earned)} since opening. The deposit is not counted; it comes back.` : 'Shows once the shops are making a profit.')));
   view.append(h('div', {class: 'card'}, h('p', {class: 'eyebrow'}, 'Break-even'),
     h('div', {class: 'tile__v'}, rs(be.perDay) + ' a day'),
     h('p', {class: 'muted small'}, `Minimum daily sales${curShop === 'both' ? '' : ' for ' + shopName(curShop)} to cover rent, bills, wages and buying` + (be.basedOn ? `, from the last ${be.basedOn} days.` : '. Gets accurate after a few weeks of entries.'))));
@@ -1329,28 +2266,39 @@ function screenReports(view) {
     h('button', {type: 'button', class: 'btn btn--soft btn--block', onclick: syncSheets}, 'Update Google Sheet')));
 }
 
+/** Weekly leakage check (P3): stock used vs what was sold. Says what it still needs instead of guessing. */
+function leakageCard() {
+  const lk = leakageCheck(today());
+  const row = (title, x, ok) => h('div', {class: 'leak'}, h('b', {}, title), x.needs ? h('p', {class: 'small muted'}, `Needs setup: ${x.needs}.`) : ok(x));
+  return h('div', {class: 'card'}, h('p', {class: 'eyebrow'}, `Leakage check · ${dateLabel(lk.from)} – ${dateLabel(lk.end)}`),
+    row('Tea', lk.tea, x => h('p', {class: 'small'}, `${qty(Math.round(x.milkUsed))} L milk used → about ${Math.round(x.cups)} cups → about ${rs(x.drinks)} of drinks at ${rs(x.price)} a cup. Tea-shop money in the same days: ${rs(x.money)} (this includes cigarettes and resale).`)),
+    row('Chaat', lk.chaat, x => h('p', {class: 'small ' + (x.diff > 15 ? 'down' : '')}, `Puris used make about ${Math.round(x.expected)} pani/masala puri plates; ${x.sold} were counted as sold.` + (x.diff > 15 ? ` ${Math.round(x.diff)} plates are not accounted for.` : ' ✓'))),
+    row('Cigarettes', lk.cig, () => null),
+    h('button', {type: 'button', class: 'link', onclick: costsScreen}, 'Fill in the numbers'));
+}
+
 function summaryText(from, to, label) {
   const lines = [`*${label}* (${dateLabel(from)} – ${dateLabel(to)})`];
   ['both'].concat(SHOP_KEYS).forEach(s => {
     const p = periodSummary(from, to, s);
-    lines.push(`${s === 'both' ? 'Total' : shopName(s)}: sales ${rs(p.sales)}, profit ${rs(p.profit)}`);
+    lines.push(`${s === 'both' ? 'Total' : shopName(s)}: sales ${rs(p.sales)}, ${from === to ? 'sales − costs' : 'profit'} ${rs(p.profit)}`);
   });
   return lines.join('\n');
 }
 function dailyRows(from, to) {
-  const head = ['Date', 'Shop', 'Sales', 'Cash', 'UPI', 'Items value', 'Money vs items', 'Buying', 'Wages', 'Rent & bills', 'Profit'];
+  const head = ['Date', 'Shop', 'Sales', 'Cash', 'UPI', 'Items value', 'Money vs items', 'Buying', 'Wages', 'Rent & bills', 'Sales minus costs', 'Left without paying', 'Change short'];
   const rows = [head];
   range(from, to).forEach(d => SHOP_KEYS.forEach(s => {
     const x = daySummary(d, s);
     if (!x.entered && !x.spend && !x.wages) return;
-    rows.push([d, shopName(s), x.sales, x.cash, x.upi, x.expected, x.gap, Math.round(x.spend), Math.round(x.wages), Math.round(x.fixed), Math.round(x.profit)]);
+    rows.push([d, shopName(s), x.sales, x.cash, x.upi, x.expected, x.counted ? x.gap : '', Math.round(x.spend), Math.round(x.wages), Math.round(x.fixed), Math.round(x.profit), x.unpaid, x.short]);
   }));
   return rows;
 }
 const toCsv = rows => rows.map(r => r.map(c => /[",\n]/.test(String(c)) ? `"${String(c).replace(/"/g, '""')}"` : c).join(',')).join('\n');
 async function syncSheets() {
   const t = today(), from = addDays(t, -365);
-  const exp = [['Date', 'Category', 'Shop', 'Amount', 'Paid by', 'Note']].concat(all('expense').filter(e => e.date >= from).sort((a, b) => a.date < b.date ? -1 : 1).map(e => [e.date, e.cat, shopName(e.shop), e.amount, e.pay, e.note || '']));
+  const exp = [['Date', 'Category', 'Shop', 'Amount', 'Paid from', 'Note']].concat(all('expense').filter(e => e.date >= from).sort((a, b) => a.date < b.date ? -1 : 1).map(e => [e.date, e.cat, shopName(e.shop), e.amount, payLabel(e), e.note || '']));
   const sold = [['Date', 'Shop', 'Item', 'Count', 'Price']];
   all('sale').filter(r => r.date >= from).sort((a, b) => a.date < b.date ? -1 : 1).forEach(r => Object.keys(r.counts || {}).forEach(id => { const it = get(id); sold.push([r.date, shopName(r.shop), it ? it.name : id, r.counts[id], (r.prices || {})[id] != null ? r.prices[id] : (it ? it.price : '')]); }));
   try {
@@ -1360,7 +2308,7 @@ async function syncSheets() {
   } catch (e) { toast('Could not update: ' + e.message); }
 }
 
-/* More: links to the other screens, plus setup (menu, running costs, people, history, server link). */
+/* More: the other screens, plus setup (menu, shop settings, suppliers, people, history, server link). */
 function screenMore(view) {
   const u = S.session.user;
   const link = (ico, title, sub, fn, show) => show === false ? null : h('button', {type: 'button', class: 'li', onclick: fn},
@@ -1368,13 +2316,20 @@ function screenMore(view) {
   const owner = u.role === 'owner', setup = can('setup');
   view.append(h('p', {class: 'muted', style: 'margin-top:8px'}, `Signed in as ${u.name} (${u.role})`));
   view.append(h('div', {class: 'list'},
-    link('👷', 'Workers', 'Attendance, overtime, salary and advances', () => go('workers')),
-    link('💵', 'Cash tally', 'Count the cash box at closing', () => go('cash')),
-    link('📊', 'Reports', 'Profit, items, chaat vs tea, payback', () => go('reports'), setup),
-    link('🍽️', 'Menu and prices', 'Items, prices, cost per plate/cup', menuScreen, setup),
-    link('🧾', 'Rent, bills and estimates', 'Monthly running costs, investment, prep estimates', costsScreen, setup),
-    link('👥', 'People and PINs', 'Who can sign in, and what they can do', peopleScreen, owner),
-    link('🕓', 'Change history', 'Who changed what, and when', historyScreen, owner)));
+    link('🧮', 'Sales entry', 'Cash and UPI for any day, item counts', () => { curDate = today(); go('sales'); }),
+    link('🧾', 'Expenses', 'Purchases, milk vendor, petty cash', () => { curDate = today(); go('spend'); }, setup),
+    link('👷', 'Workers', 'Attendance, daily pay, advances', () => { curDate = today(); go('workers'); }),
+    link('💵', 'Cash tally', 'Count each shop\'s cash box', () => { curDate = today(); go('cash'); }),
+    link('🥣', 'Chaat counter tally', 'Picture buttons for the counter phone: one tap per plate', () => go('tally'), can('tally'))));
+  if (setup) {
+    view.append(h('h3', {class: 'h3'}, 'Setup'));
+    view.append(h('div', {class: 'list'},
+      link('🍽️', 'Menu and prices', 'Items, prices, photos, cost per plate/cup', menuScreen),
+      link('🏪', 'Shop settings', 'Opening dates, sales entry, targets, rent, bills, estimates', costsScreen),
+      link('🤝', 'Suppliers', 'Milk vendor and others paid in advance', suppliersScreen),
+      link('👥', 'People and PINs', 'Who can sign in, and what they can do', peopleScreen, owner),
+      link('🕓', 'Change history', 'Who changed what, and when', historyScreen, owner)));
+  }
   view.append(h('h3', {class: 'h3'}, 'This phone'));
   const pend = pendingCount();
   view.append(h('div', {class: 'list'},
@@ -1398,11 +2353,11 @@ function serverLinkSheet() {
 function menuScreen() {
   sheet('Menu and prices', close => {
     const body = h('div', {});
-    body.append(h('p', {class: 'muted small'}, 'Cost per plate/cup is optional. With it, reports show profit per item. Price changes apply from today; past days keep their old price.'));
+    body.append(h('p', {class: 'muted small'}, 'Tip: take a photo of each plate. The counter tally shows your photos, which workers recognise faster than icons. Price changes apply from today; past days keep their old price.'));
     SHOP_KEYS.forEach(s => {
       body.append(h('div', {class: 'row row--between'}, h('h3', {class: 'h3'}, shopName(s)), h('button', {type: 'button', class: 'link', onclick: () => { close(); itemForm({shop: s}); }}, '+ Add item')));
-      body.append(h('div', {class: 'list'}, all('item').filter(i => i.shop === s).sort((a, b) => (a.order || 0) - (b.order || 0)).map(it => h('button', {type: 'button', class: 'li', onclick: () => { close(); itemForm(it); }},
-        h('span', {class: 'li__ico'}, it.icon || '•'),
+      body.append(h('div', {class: 'list'}, all('item').filter(i => i.shop === s).sort((a, b) => (a.active === false) - (b.active === false) || (a.order || 0) - (b.order || 0)).map(it => h('button', {type: 'button', class: 'li', onclick: () => { close(); itemForm(it); }},
+        h('span', {class: 'li__ico'}, itemPic(it, 'li__img')),
         h('span', {class: 'li__main'}, h('div', {class: 'li__t'}, it.name, it.active === false ? h('span', {class: 'pill', style: 'margin-left:6px'}, 'hidden') : null),
           h('div', {class: 'li__s'}, it.cost ? `costs ${rs(it.cost)} · profit ${rs(it.price - it.cost)}` : 'cost not set')),
         h('span', {class: 'li__v'}, it.price ? rs(it.price) : h('span', {class: 'down'}, 'set price'))))));
@@ -1412,18 +2367,30 @@ function menuScreen() {
 }
 function itemForm(existing) {
   const it = Object.assign({kind: 'item', name: '', price: '', cost: '', icon: '', active: true, order: 99}, existing);
-  sheet(it.id ? 'Edit item' : 'New item', close => h('div', {},
-    field('Name', textIn(it.name, v => { it.name = v; })),
-    h('div', {class: 'grid2'}, field('Selling price', moneyIn(it.price, v => { it.price = v || 0; })), field('Cost per plate/cup', moneyIn(it.cost, v => { it.cost = v || 0; }))),
-    field('Picture (one emoji)', textIn(it.icon, v => { it.icon = v.trim().slice(0, 4); }, {placeholder: '🍵'})),
-    field('Type', seg([['made', 'Made here'], ['resale', 'Bought and resold']], it.resale ? 'resale' : 'made', v => { it.resale = v === 'resale'; })),
-    field('Show on sales screen', seg([['y', 'Yes'], ['n', 'Hide']], it.active === false ? 'n' : 'y', v => { it.active = v === 'y'; })),
-    h('button', {type: 'button', class: 'btn btn--primary btn--big btn--block', onclick: () => { if (!it.name.trim()) { toast('Enter a name'); return; } save(it); close(); toast('Saved'); menuScreen(); }}, 'Save')));
+  sheet(it.id ? 'Edit item' : 'New item', close => {
+    const picWrap = h('div', {class: 'row'});
+    const drawPic = () => {
+      picWrap.innerHTML = '';
+      picWrap.append(itemPic(it, 'item__img item__img--big'),
+        h('button', {type: 'button', class: 'btn btn--soft', onclick: () => takePhoto(240, url => { it.photo = url; drawPic(); })}, it.photo ? '📷 New photo' : '📷 Take a photo'),
+        it.photo ? h('button', {type: 'button', class: 'link', onclick: () => { delete it.photo; drawPic(); }}, 'Use icon') : null);
+    };
+    drawPic();
+    return h('div', {},
+      field('Name', textIn(it.name, v => { it.name = v; })),
+      h('div', {class: 'grid2'}, field('Selling price', moneyIn(it.price, v => { it.price = v || 0; })), field('Cost per plate/cup', moneyIn(it.cost, v => { it.cost = v || 0; }))),
+      field('Picture', picWrap),
+      field('Icon if no photo (one emoji)', textIn(it.icon, v => { it.icon = v.trim().slice(0, 4); drawPic(); }, {placeholder: '🍵'})),
+      field('Type', seg([['made', 'Made here'], ['resale', 'Bought and resold']], it.resale ? 'resale' : 'made', v => { it.resale = v === 'resale'; })),
+      field('Show on sales screen and tally', seg([['y', 'Yes'], ['n', 'Hide']], it.active === false ? 'n' : 'y', v => { it.active = v === 'y'; })),
+      h('button', {type: 'button', class: 'btn btn--primary btn--big btn--block', onclick: () => { if (!it.name.trim()) { toast('Enter a name'); return; } save(it); close(); toast('Saved'); menuScreen(); }}, 'Save'));
+  });
 }
 
+/** Shop settings: opening dates, how sales are entered, targets, rent, bills and the estimates the checks need. */
 function costsScreen() {
   const st = JSON.parse(JSON.stringify(settings()));
-  sheet('Rent, bills and estimates', close => {
+  sheet('Shop settings', close => {
     const fixedList = h('div', {class: 'list'});
     const drawFixed = () => {
       fixedList.innerHTML = '';
@@ -1434,24 +2401,57 @@ function costsScreen() {
         h('button', {type: 'button', class: 'link', onclick: () => { st.fixed.splice(i, 1); drawFixed(); }}, 'Remove'))));
     };
     drawFixed();
+    const dateIn = (v, on) => { const i = h('input', {type: 'date', class: 'in', value: v || ''}); i.onchange = () => on(i.value); return i; };
     return h('div', {},
       SHOP_KEYS.map(s => h('div', {class: 'card'}, h('p', {class: 'eyebrow'}, s === 'chaat' ? 'Chaat shop' : 'Tea shop'),
         field('Name in the app', textIn(st.shops[s].name, v => { st.shops[s].name = v; })),
+        h('div', {class: 'grid2'}, field('Opened on', dateIn(st.shops[s].opened, v => { st.shops[s].opened = v; })), field('Closes at', (() => { const i = h('input', {type: 'time', class: 'in', value: st.shops[s].close || ''}); i.onchange = () => { st.shops[s].close = i.value; }; return i; })())),
+        field('Sales entry', seg([['money', 'Money only'], ['items', 'Money + items']], st.shops[s].salesMode || 'items', v => { st.shops[s].salesMode = v; })),
         h('div', {class: 'grid2'}, field('Rent per month', moneyIn(st.shops[s].rent, v => { st.shops[s].rent = v || 0; })),
-          field('Money invested', moneyIn(st.shops[s].investment, v => { st.shops[s].investment = v || 0; }))))),
+          field('Money invested', moneyIn(st.shops[s].investment, v => { st.shops[s].investment = v || 0; }))),
+        field('Sales target per month (optional)', moneyIn(st.shops[s].target, v => { st.shops[s].target = v || ''; })))),
+      h('p', {class: 'muted small'}, 'No rent or bills are charged before a shop\'s opening date.'),
       h('h3', {class: 'h3'}, 'Other monthly bills'),
-      h('p', {class: 'muted small'}, 'Spread over each day so daily profit is real. When you pay these, add them as Rent / Electricity / Water expenses; they will not be counted twice.'),
+      h('p', {class: 'muted small'}, 'Spread over each day. When you pay these, add them as Rent / Electricity / Water expenses; they are not counted twice.'),
       fixedList,
       h('button', {type: 'button', class: 'link', onclick: () => { st.fixed.push({name: '', amount: 0, shop: 'shared'}); drawFixed(); }}, '+ Add a monthly bill'),
-      h('h3', {class: 'h3'}, 'Estimates for predictions'),
+      h('h3', {class: 'h3'}, 'For the checks and predictions'),
       h('div', {class: 'grid2'},
-        field('Milk per cup (ml)', numIn(st.milkMlPerCup, v => { st.milkMlPerCup = v; })),
-        field('Tea powder per cup (g)', numIn(st.teaGPerCup, v => { st.teaGPerCup = v; })),
-        field('Puris per pani puri plate', numIn(st.purisPerPlate, v => { st.purisPerPlate = v; })),
-        field('Puris per packet', numIn(st.purisPerPacket, v => { st.purisPerPacket = v; })),
-        field('Overtime per hour', moneyIn(st.overtimeRate, v => { st.overtimeRate = v || 0; }))),
-      h('button', {type: 'button', class: 'btn btn--primary btn--big btn--block', style: 'margin-top:12px', onclick: () => { st.fixed = st.fixed.filter(f => f.name.trim()); save(st); close(); toast('Saved'); go('more'); }}, 'Save'));
+        field('Cups of tea from 1 L milk', numIn(st.cupsPerLitre, v => { st.cupsPerLitre = v; }, {placeholder: 'not set'})),
+        field('Average price of a cup', moneyIn(st.avgCupPrice, v => { st.avgCupPrice = v || ''; })),
+        field('Puris in one bucket', numIn(st.purisPerBucket, v => { st.purisPerBucket = v; }, {placeholder: 'not set'})),
+        field('Puris per plate', numIn(st.purisPerPlate, v => { st.purisPerPlate = v; })),
+        field('Overtime per hour', moneyIn(st.overtimeRate, v => { st.overtimeRate = v || 0; })),
+        field('Business day starts at', (() => { const i = h('input', {type: 'time', class: 'in', value: st.dayStartsAt || '04:00'}); i.onchange = () => { st.dayStartsAt = i.value || '04:00'; }; return i; })())),
+      field('Bajji counter running', seg([['y', 'Yes'], ['n', 'Not yet']], st.bajjiOn ? 'y' : 'n', v => { st.bajjiOn = v === 'y'; })),
+      h('p', {class: 'muted small'}, 'Entries made before the business day starts (4 am) count for the day before.'),
+      h('button', {type: 'button', class: 'btn btn--primary btn--big btn--block', style: 'margin-top:12px', onclick: () => {
+        st.fixed = st.fixed.filter(f => f.name.trim()); save(st);
+        const bajji = all('item').find(i => /bajji/i.test(i.name));
+        if (bajji && (bajji.active !== false) !== !!st.bajjiOn) save(Object.assign({}, bajji, {active: !!st.bajjiOn}));
+        close(); toast('Saved'); go(route);
+      }}, 'Save'));
   });
+}
+
+function suppliersScreen() {
+  sheet('Suppliers', close => h('div', {},
+    h('p', {class: 'muted small'}, 'For suppliers you pay in advance (or who give credit). "Pay in advance" is not a cost; each delivery is the cost for that day.'),
+    h('div', {class: 'list'}, suppliers().map(s => { const b = supplierBalance(s); return h('button', {type: 'button', class: 'li', onclick: () => { close(); supplierForm(s); }},
+      h('span', {class: 'li__main'}, h('div', {class: 'li__t'}, s.name), h('div', {class: 'li__s'}, `${qty(s.usual)} ${s.unit} a day at ${rs(s.rate)} · ${b.balance >= 0 ? 'advance ' + rs(b.balance) : 'owe ' + rs(-b.balance)}`)), h('span', {class: 'muted'}, '›')); })),
+    h('button', {type: 'button', class: 'btn btn--soft btn--block', style: 'margin-top:10px', onclick: () => { close(); supplierForm(null); }}, '+ Add supplier')));
+}
+function supplierForm(existing) {
+  const s = Object.assign({kind: 'supplier', name: '', cat: 'Milk', stock: '', unit: 'L', rate: '', usual: '', shop: 'tea', active: true}, existing || {});
+  sheet(existing ? 'Edit supplier' : 'New supplier', close => h('div', {},
+    field('Name', textIn(s.name, v => { s.name = v; }, {placeholder: 'e.g. Milk vendor'})),
+    field('Counts as', chips(CATS.filter(c => !c.fixed && !c.owner && !c.advance).map(c => ({k: c.k, i: c.i})), s.cat, v => { s.cat = v; })),
+    field('Adds to stock', (() => { const sel = h('select', {class: 'in'}, h('option', {value: ''}, 'Not a stock item'), stockItems().map(x => h('option', {value: x.id, selected: s.stock === x.id}, x.name))); sel.onchange = () => { s.stock = sel.value; }; return sel; })()),
+    h('div', {class: 'grid2'}, field('Unit', textIn(s.unit, v => { s.unit = v.trim(); })), field('Price per unit', moneyIn(s.rate, v => { s.rate = v; }))),
+    h('div', {class: 'grid2'}, field('Usual amount a day', numIn(s.usual, v => { s.usual = v; })),
+      field('For', seg([['tea', shopName('tea')], ['chaat', shopName('chaat')], ['shared', 'Both']], s.shop, v => { s.shop = v; }))),
+    h('button', {type: 'button', class: 'btn btn--primary btn--big btn--block', onclick: () => { if (!s.name.trim()) { toast('Enter a name'); return; } save(s); close(); toast('Saved'); suppliersScreen(); }}, 'Save'),
+    existing ? h('button', {type: 'button', class: 'btn btn--danger btn--block', style: 'margin-top:8px', onclick: () => { save(Object.assign({}, s, {active: false})); close(); toast('Removed'); }}, 'Stop using this supplier') : null));
 }
 
 function peopleScreen() {
@@ -1459,7 +2459,7 @@ function peopleScreen() {
     const body = h('div', {}, h('p', {class: 'muted'}, 'Loading…'));
     const draw = users => {
       body.innerHTML = '';
-      body.append(h('p', {class: 'muted small'}, 'Owner and family see everything. A cashier can enter sales, expenses, stock counts, attendance and the cash tally, but not profit or salaries.'),
+      body.append(h('p', {class: 'muted small'}, 'Owner and family see everything. A cashier can enter sales, expenses, stock counts, attendance, the cash tally and the counter tally, but not profit or salaries.'),
         h('div', {class: 'list'}, users.map(u => u.locked
           ? h('div', {class: 'li'}, h('span', {class: 'li__main'}, h('div', {class: 'li__t'}, u.name), h('div', {class: 'li__s'}, `${u.username} · ${u.role}`)))
           : h('button', {type: 'button', class: 'li', onclick: () => personForm(u, draw)},
@@ -1489,6 +2489,7 @@ function personForm(u, redraw) {
     h('button', {type: 'button', class: 'btn btn--ghost btn--block', style: 'margin-top:8px', onclick: () => { close(); back(); }}, 'Back')));
 }
 
+/** Change history with before → after values (P3-7). */
 function historyScreen() {
   sheet('Change history', close => {
     const body = h('div', {}, h('p', {class: 'muted'}, 'Loading…'));
@@ -1496,52 +2497,95 @@ function historyScreen() {
       body.innerHTML = '';
       if (!d.rows.length) { body.append(h('p', {class: 'muted'}, 'No changes yet.')); return; }
       body.append(h('div', {class: 'list'}, d.rows.slice(0, 200).map(r => {
-        let o = {}; try { o = JSON.parse(r.json); } catch (e) { /* ignore */ }
-        const what = describe(o);
-        return h('div', {class: 'li'}, h('span', {class: 'li__main'}, h('div', {class: 'li__t'}, `${r.user} ${r.action}d ${what}`), h('div', {class: 'li__s'}, r.time)));
+        let o = {}, before = null;
+        try { o = JSON.parse(r.json); } catch (e) { /* ignore */ }
+        try { before = r.before ? JSON.parse(r.before) : null; } catch (e) { /* ignore */ }
+        const diff = before && !o.deleted ? changes(before, o) : [];
+        return h('div', {class: 'li'}, h('span', {class: 'li__main'}, h('div', {class: 'li__t'}, `${r.user} ${r.action}d ${describe(o)}`),
+          diff.length ? h('div', {class: 'li__s', style: 'color:var(--ink)'}, diff.slice(0, 5).join(' · ')) : null,
+          h('div', {class: 'li__s'}, r.time)));
       })));
     }, e => { body.innerHTML = ''; body.append(h('p', {class: 'down'}, 'Needs internet: ' + e.message)); });
     return body;
   });
 }
+const MONEY_KEYS = {cash: 'Cash', upi: 'UPI', amount: 'Amount', unpaid: 'Left without paying', short: 'Change short', counted: 'Counted', price: 'Price', rate: 'Rate'};
+const MARK = {P: 'present', H: 'half day', A: 'absent'};
+/** Readable list of what changed between two versions of a record, e.g. "UPI ₹6,930 → ₹5,930". */
+function changes(a, b) {
+  const out = [];
+  const name = id => { const r = get(id); return r ? r.name : id; };
+  Object.keys(MONEY_KEYS).forEach(k => { if ((Number(a[k]) || 0) !== (Number(b[k]) || 0)) out.push(`${MONEY_KEYS[k]} ${rs(a[k])} → ${rs(b[k])}`); });
+  if (a.kind === 'worker' && Number(a.pay) !== Number(b.pay)) out.push(`Pay ${rs(a.pay)} → ${rs(b.pay)}`);
+  if (a.qty !== b.qty && (a.qty != null || b.qty != null)) out.push(`Qty ${qty(a.qty)} → ${qty(b.qty)}`);
+  if (a.cat !== b.cat && a.cat) out.push(`${a.cat} → ${b.cat}`);
+  if (a.date !== b.date && a.kind === 'expense') out.push(`Date ${a.date} → ${b.date}`);
+  ['counts', 'marks', 'ot'].forEach(k => {
+    const x = a[k] || {}, y = b[k] || {};
+    new Set(Object.keys(x).concat(Object.keys(y))).forEach(id => {
+      if (x[id] === y[id]) return;
+      const f = v => k === 'marks' ? (MARK[v] || 'not marked') : (v || 0);
+      out.push(`${name(id)}${k === 'ot' ? ' overtime' : ''} ${f(x[id])} → ${f(y[id])}`);
+    });
+  });
+  return out;
+}
 function describe(o) {
   switch (o.kind) {
     case 'sale': return `${shopName(o.shop)} sales for ${o.date} (cash ${rs(o.cash)}, UPI ${rs(o.upi)})`;
     case 'expense': return `expense ${o.cat} ${rs(o.amount)} on ${o.date}`;
+    case 'delivery': { const s = get(o.supplier); return `${s ? s.name : 'delivery'}: ${qty(o.qty)} on ${o.date}`; }
     case 'cash': return `cash tally ${shopName(o.shop)} ${o.date}`;
     case 'count': return `stock count ${o.date}`;
     case 'att': return `attendance ${o.date}`;
+    case 'tally': return `counter tally ${o.date}`;
+    case 'close': return `closing for ${o.date}`;
+    case 'petty': { const w = get(o.worker); return `petty cash ${o.type === 'give' ? 'to' : 'from'} ${w ? w.name : 'a worker'} ${rs(o.amount)}`; }
     case 'wpay': { const w = get(o.worker); return `${o.type} ${rs(o.amount)} to ${w ? w.name : 'a worker'}`; }
     case 'item': return `item ${o.name} (${rs(o.price)})`;
     case 'worker': return `worker ${o.name}`;
+    case 'supplier': return `supplier ${o.name}`;
+    case 'settings': return 'shop settings';
     default: return o.kind || 'a record';
   }
 }
 
 /* App shell: sign-in, PIN lock, tabs, routing, install button, offline service worker. */
-const TABS = [['home', 'Home'], ['sales', 'Sales'], ['spend', 'Expenses'], ['stock', 'Stock'], ['more', 'More']];
-const TITLES = {home: 'Today', sales: 'Sales entry', spend: 'Expenses', stock: 'Stock', more: 'More', workers: 'Workers', cash: 'Cash tally', reports: 'Reports'};
-const SCREENS = {home: screenHome, sales: screenSales, spend: screenSpend, stock: screenStock, more: screenMore, workers: screenWorkers, cash: screenCash, reports: screenReports};
-let route = 'home';
+// Tabs (P1-6): the daily closing lives in one tab; Sales, Expenses, Workers and Cash open from Home or More.
+const tabsFor = () => [['home', 'Home'], ['close', 'Close day'], can('profit') ? ['reports', 'Reports'] : ['spend', 'Expenses'], ['stock', 'Stock'], ['more', 'More']];
+const TITLES = {home: 'Today', close: 'Close the day', sales: 'Sales entry', spend: 'Expenses', stock: 'Stock', more: 'More', workers: 'Workers', cash: 'Cash tally', reports: 'Reports'};
+const SCREENS = {home: screenHome, close: screenClose, sales: screenSales, spend: screenSpend, stock: screenStock, more: screenMore, workers: screenWorkers, cash: screenCash, reports: screenReports, tally: screenTally};
+let route = /tally/.test(location.hash) ? 'tally' : 'home';
+let backTo = 'more';
 let installEvt = null;
 
 function applyTheme() { document.documentElement.setAttribute('data-theme', LS.get('theme', 'dark')); }
-function go(r) { route = SCREENS[r] ? r : 'home'; render(); window.scrollTo(0, 0); }
+function go(r) {
+  const next = SCREENS[r] ? r : 'home';
+  if (tabsFor().some(t => t[0] === route) && !tabsFor().some(t => t[0] === next)) backTo = route;
+  if (next === 'close' && route !== 'close') closeDate = null;
+  route = next;
+  if (route === 'tally' && !/tally/.test(location.hash)) history.replaceState(null, '', '#tally');
+  render(); window.scrollTo(0, 0);
+}
 
 function render() {
   const app = $('app');
   app.innerHTML = '';
   if (!S.session) { app.append(authScreen()); return; }
   if (isLocked()) { app.append(lockScreen()); return; }
-  const tabOf = ['workers', 'cash', 'reports'].includes(route) ? 'more' : route;
+  if (route === 'tally') { if (can('tally')) { screenTally(app); return; } route = 'home'; }
+  const tabs = tabsFor();
+  const isTab = tabs.some(t => t[0] === route);
+  const tabOf = isTab ? route : backTo;
   const syncBtn = h('button', {type: 'button', class: 'sync', id: 'syncBtn', onclick: () => sync().then(() => toast('Synced'), e => toast('Not synced: ' + e.message))}, h('i'), h('span'));
   app.append(
     h('header', {class: 'top'}, h('div', {class: 'top__in'},
-      ['workers', 'cash', 'reports'].includes(route) ? h('button', {type: 'button', class: 'iconbtn', 'aria-label': 'Back', onclick: () => go('more')}, '‹') : null,
+      !isTab ? h('button', {type: 'button', class: 'iconbtn', 'aria-label': 'Back', onclick: () => go(backTo)}, '‹') : null,
       h('h1', {}, TITLES[route]), syncBtn)),
     DEMO ? h('div', {class: 'demo-strip'}, 'Demo with made-up numbers. Tap anything; changes stay on this device only.') : null,
     (() => { const v = h('main', {class: 'view', id: 'view'}); try { SCREENS[route](v); } catch (e) { console.error(e); v.append(h('div', {class: 'alert alert--bad'}, 'Something went wrong on this screen: ' + e.message)); } return v; })(),
-    h('nav', {class: 'tabs', 'aria-label': 'Main'}, h('div', {class: 'tabs__in'}, TABS.map(([k, l]) => h('button', {type: 'button', class: 'tab', 'aria-current': tabOf === k ? 'page' : null, onclick: () => go(k)}, icon(k === 'spend' ? 'spend' : k), l)))));
+    h('nav', {class: 'tabs', 'aria-label': 'Main'}, h('div', {class: 'tabs__in'}, tabs.map(([k, l]) => h('button', {type: 'button', class: 'tab', 'aria-current': tabOf === k ? 'page' : null, onclick: () => go(k)}, icon(k), l)))));
   if (route === 'home') installBanner();
   drawSync();
 }
@@ -1638,7 +2682,9 @@ loadStore().then(() => {
   setInterval(() => { if (S.session && !document.hidden) sync().catch(() => {}); }, 5 * 60 * 1000);
 });
 if (!DEMO && 'serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
-window.__app = {S, go, save, all, get, daySummary, periodSummary, forecast, prepPlan, stockLevel, workerBalance, expectedCash, payback, breakEven};
+window.__app = {S, go, save, remove, all, get, settings, today, addDays, daySummary, dayCost, periodSummary, profitTrend, monthCompare, itemTotals, forecast, prepPlan,
+  stockLevel, shoppingList, workerBalance, expectedCash, payback, breakEven, supplierBalance, payEveryone, markAllPresent, closingDay, leakageCheck, labourCost, targetProgress, merge3, migrate, upgrade, cashSpent,
+  run: src => eval(src)};   // run: lets the automated tests reach inside the app
 
 })();
 </script>
