@@ -206,6 +206,7 @@ table.t{border-collapse:collapse;width:100%;font-size:14.5px}
 .alert--bad{background:var(--bad-soft)}
 .alert--good{background:var(--good-soft)}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+.demo-strip{background:var(--accent-soft);color:var(--ink);font-size:14px;line-height:1.35;text-align:center;padding:8px 16px;border-bottom:1px solid var(--line)}
 
 </style>
 </head>
@@ -219,6 +220,7 @@ table.t{border-collapse:collapse;width:100%;font-size:14.5px}
 'use strict';
 /* Starting data from Prashanth's questionnaire (code MMVQ-WG4A + follow-ups, Nov 2026).
    Everything here can be changed in Settings; prices left as 0 still need setting. */
+const DEMO = false; // the build sets this to true for the reviewers' demo link
 const SEED = {
   settings() {
     return {
@@ -285,9 +287,11 @@ const DAY_TAGS = ['Rain', 'Holiday', 'Festival', 'Closed early', 'Worker absent'
 
 /* Local-first data store with background sync, sign-in and the app lock PIN. */
 const API_DEFAULT = "https://script.google.com/macros/s/AKfycbzpJiNyq39qk3vu2HFQmAOlewRaiCvlFdiZkyo7sgqEvLXhoWvibcEK_wDbmy1hPeFd/exec";
+// The demo link keeps its data apart from the real app (same website, different names).
+const LSP = DEMO ? 'smdemo.' : 'sm.';
 const LS = {
-  get(k, d) { try { const v = localStorage.getItem('sm.' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
-  set(k, v) { try { localStorage.setItem('sm.' + k, JSON.stringify(v)); } catch (e) { /* storage full or blocked */ } }
+  get(k, d) { try { const v = localStorage.getItem(LSP + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem(LSP + k, JSON.stringify(v)); } catch (e) { /* storage full or blocked */ } }
 };
 
 // ---------- persistence (IndexedDB, with localStorage fallback) ----------
@@ -297,7 +301,7 @@ const DB = {
     if (!window.indexedDB) return;
     this.idb = await new Promise(res => {
       try {
-        const r = indexedDB.open('shop-manager', 1);
+        const r = indexedDB.open(DEMO ? 'shop-manager-demo' : 'shop-manager', 1);
         r.onupgradeneeded = () => r.result.createObjectStore('rec', {keyPath: 'id'});
         r.onsuccess = () => res(r.result);
         r.onerror = () => res(null);
@@ -371,6 +375,7 @@ function remove(id) {
 
 // ---------- server ----------
 async function api(op, body) {
+  if (DEMO) return demoApi(op, body || {});
   if (!S.api || S.api.indexOf('http') !== 0) throw new Error('The server link is not set. Add it in Settings.');
   const res = await fetch(S.api, {method: 'POST', body: JSON.stringify(Object.assign({op, token: S.session && S.session.token}, body || {})), redirect: 'follow'});
   const text = await res.text();
@@ -453,7 +458,7 @@ async function pinHash(pin, salt) {
 }
 let lockedAt = 0;
 function isLocked() { return LS.get('locked', false); }
-function lock() { LS.set('locked', true); notify(); }
+function lock() { if (DEMO) return; LS.set('locked', true); notify(); }
 function unlock() { LS.set('locked', false); }
 async function tryUnlock(pin) {
   if (await pinHash(pin, S.session.user.username) !== LS.get('pinHash', '')) return false;
@@ -469,6 +474,7 @@ window.addEventListener('offline', () => { S.online = false; notify(); });
 async function loadStore() {
   await DB.open();
   (await DB.all()).forEach(r => S.recs.set(r.id, r));
+  if (DEMO) await demoStart();
   if (S.session && !get('settings') && !S.seq) { /* fresh phone: wait for first sync */ }
 }
 const can = what => {
@@ -1080,7 +1086,9 @@ function screenStock(view) {
   // Shopping list for tomorrow: enough for 2 days, plus milk from tomorrow's expected cups.
   const buy = [];
   list.forEach(({s, l}) => {
-    if (l.perDay && l.level != null && l.level < l.perDay * 2) buy.push([s.name, `${qty(Math.ceil((l.perDay * 2 - l.level) * 10) / 10)} ${s.unit}`]);
+    // Pieces and packets are bought whole; weights and litres to one decimal.
+    const need = l.perDay * 2 - (l.level || 0), whole = /^(pcs|packet)$/.test(s.unit);
+    if (l.perDay && l.level != null && need > 0) buy.push([s.name, `${qty(whole ? Math.ceil(need) : Math.ceil(need * 10) / 10)} ${s.unit}`]);
     else if (l.low && !l.perDay) buy.push([s.name, 'running low']);
   });
   const prep = prepPlan(addDays(t, 1));
@@ -1373,9 +1381,10 @@ function screenMore(view) {
     link('🔄', 'Sync now', (S.lastSync ? `Last synced ${new Date(S.lastSync).toLocaleString('en-IN', {hour: 'numeric', minute: '2-digit', day: 'numeric', month: 'short'})}` : 'Not synced yet') + (pend ? ` · ${pend} change${pend === 1 ? '' : 's'} waiting` : ''),
       () => sync().then(() => { toast('Synced'); go('more'); }, e => toast('Could not sync: ' + e.message))),
     link('🌗', 'Theme', LS.get('theme', 'dark') === 'dark' ? 'Dark' : 'Light', () => { const t = LS.get('theme', 'dark') === 'dark' ? 'light' : 'dark'; LS.set('theme', t); applyTheme(); go('more'); }),
-    link('🔒', 'Lock now', 'Asks for your PIN to open again', () => lock()),
-    link('🔗', 'Server link', S.api ? S.api.slice(0, 48) + '…' : 'Not set', serverLinkSheet, owner || !S.api),
-    link('🚪', 'Sign out', 'Use a different account on this phone', () => confirmSheet('Sign out?', pend ? `${pend} change(s) have not reached the server yet. Sync first if you can.` : 'You can sign in again any time.', 'Sign out', () => { signOut(); go('home'); }))));
+    DEMO ? link('↺', 'Reset demo data', 'Undo everything you changed in the demo', () => confirmSheet('Reset the demo?', 'Your changes are removed and the sample data comes back.', 'Reset', () => demoReset().then(() => { toast('Demo reset'); go('home'); }))) : null,
+    link('🔒', 'Lock now', 'Asks for your PIN to open again', () => lock(), !DEMO),
+    link('🔗', 'Server link', S.api ? S.api.slice(0, 48) + '…' : 'Not set', serverLinkSheet, !DEMO && (owner || !S.api)),
+    DEMO ? null : link('🚪', 'Sign out', 'Use a different account on this phone', () => confirmSheet('Sign out?', pend ? `${pend} change(s) have not reached the server yet. Sync first if you can.` : 'You can sign in again any time.', 'Sign out', () => { signOut(); go('home'); }))));
 }
 
 function serverLinkSheet() {
@@ -1530,6 +1539,7 @@ function render() {
     h('header', {class: 'top'}, h('div', {class: 'top__in'},
       ['workers', 'cash', 'reports'].includes(route) ? h('button', {type: 'button', class: 'iconbtn', 'aria-label': 'Back', onclick: () => go('more')}, '‹') : null,
       h('h1', {}, TITLES[route]), syncBtn)),
+    DEMO ? h('div', {class: 'demo-strip'}, 'Demo with made-up numbers. Tap anything; changes stay on this device only.') : null,
     (() => { const v = h('main', {class: 'view', id: 'view'}); try { SCREENS[route](v); } catch (e) { console.error(e); v.append(h('div', {class: 'alert alert--bad'}, 'Something went wrong on this screen: ' + e.message)); } return v; })(),
     h('nav', {class: 'tabs', 'aria-label': 'Main'}, h('div', {class: 'tabs__in'}, TABS.map(([k, l]) => h('button', {type: 'button', class: 'tab', 'aria-current': tabOf === k ? 'page' : null, onclick: () => go(k)}, icon(k === 'spend' ? 'spend' : k), l)))));
   if (route === 'home') installBanner();
@@ -1537,6 +1547,7 @@ function render() {
 }
 function drawSync() {
   const b = $('syncBtn'); if (!b) return;
+  if (DEMO) { b.dataset.s = 'ok'; b.lastChild.textContent = 'Demo'; return; }
   const n = pendingCount();
   const s = S.syncing ? 'busy' : !S.online ? 'off' : n ? 'busy' : 'ok';
   b.dataset.s = s;
@@ -1607,6 +1618,7 @@ function lockScreen() {
 // ---------- install (questionnaire M5: "a link to download from") ----------
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; if (route === 'home' && S.session) render(); });
 function installBanner() {
+  if (DEMO) return;
   const standalone = window.matchMedia && matchMedia('(display-mode: standalone)').matches || navigator.standalone;
   if (standalone || LS.get('installHidden', false)) return;
   const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
@@ -1625,7 +1637,7 @@ loadStore().then(() => {
   if (S.session) sync().catch(() => {});
   setInterval(() => { if (S.session && !document.hidden) sync().catch(() => {}); }, 5 * 60 * 1000);
 });
-if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+if (!DEMO && 'serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 window.__app = {S, go, save, all, get, daySummary, periodSummary, forecast, prepPlan, stockLevel, workerBalance, expectedCash, payback, breakEven};
 
 })();
